@@ -8,14 +8,17 @@ function init(){
     
     var geometry = new THREE.BoxGeometry( 1, 1, 1 );
     var material = new THREE.MeshBasicMaterial( { color: 0x0000ff } );
-    var cube = new THREE.Mesh( geometry, material );
+    cube = new THREE.Mesh( geometry, material );
     scene.add( cube );
     
     camera.position.z = 5;
     function animate() {
+        cube.rotateX(0.01);
+        cube.rotateY(0.01);
         requestAnimationFrame( animate );
         renderer.render( scene, camera );
     }
     animate();
 }
 init();
+var cube;
