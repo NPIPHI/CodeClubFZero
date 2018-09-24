@@ -7,10 +7,12 @@ function init(){
     document.body.appendChild( renderer.domElement );
     
     var geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    var material = new THREE.MeshBasicMaterial( { color: 0x0000ff } );
+    var material = new THREE.MeshLambertMaterial( { color: 0x0000ff } );
     cube = new THREE.Mesh( geometry, material );
     scene.add( cube );
-    
+    let light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(3,3,3);
+    scene.add(light);
     camera.position.z = 5;
     function animate() {
         cube.rotateX(0.01);
