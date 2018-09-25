@@ -25,6 +25,8 @@ function init(){
     let light = new THREE.PointLight(0xffffff, 1, 100);
     light.position.set(3,3,3);
     scene.add(light);
+    light = new THREE.AmbientLight(0x3f3f3f, 1, 100);
+    scene.add(light);
     camera.position.z = 5;
     function animate() {
         cube.rotateX(0.01);
