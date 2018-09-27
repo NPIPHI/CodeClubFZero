@@ -29,8 +29,8 @@ function init(){
     scene.add(light);
     camera.position.z = 5;
     function animate() {
-        cube.rotateX(0.01);
-        cube.rotateY(0.01);
+        //cube.rotateX(0.01);
+        //cube.rotateY(0.01);
         requestAnimationFrame( animate );
         renderer.render( scene, camera );
     }

@@ -63,6 +63,9 @@ class v3{//3D vector. pertend that it is immutable
     static dif(v1,v2){//v1 - v2
         return new v3(v1.x-v2.x,v1.y-v2.y,v1.z-v2.z);
     }
+    static fromTHREEGeom(object3D){
+        return new v3(object3D.matrix.elements[12],object3D.matrix.elements[13],object3D.matrix.elements[14]);
+    }
 }
 class Matrix3{// pertend it is immutable
     constructor(values){//9 element list. left to right top to bottom
@@ -76,6 +79,9 @@ class Matrix3{// pertend it is immutable
                             this.m[3]*matrix.m[0]+this.m[4]*matrix.m[3]+this.m[5]*matrix.m[6],this.m[3]*matrix.m[1]+this.m[4]*matrix.m[4]+this.m[5]*matrix.m[7],this.m[3]*matrix.m[2]+this.m[4]*matrix.m[5]+this.m[5]*matrix.m[8],
                             this.m[6]*matrix.m[0]+this.m[7]*matrix.m[3]+this.m[8]*matrix.m[6],this.m[6]*matrix.m[1]+this.m[7]*matrix.m[4]+this.m[8]*matrix.m[7],this.m[6]*matrix.m[2]+this.m[7]*matrix.m[5]+this.m[8]*matrix.m[8]]);
     }
+    static fromTHREEGeom(object3D){
+        return new Matrix3([object3D.matrix.elements[0],object3D.matrix.elements[1],object3D.matrix.elements[2],object3D.matrix.elements[4],object3D.matrix.elements[5],object3D.matrix.elements[6],object3D.matrix.elements[8],object3D.matrix.elements[9],object3D.matrix.elements[10]]);
+    }
 }
 class Polygon{
     constructor(p1,p2,p3){
@@ -83,34 +89,48 @@ class Polygon{
         this.staticVerts = [p1,p2,p3];
         this.staticSideNormals = [v3.cross(v3.dif(p1,p2),this.staticNormal).normalise(),v3.cross(v3.dif(p2,p3),this.staticNormal).normalise(),v3.cross(v3.dif(p3,p1),this.staticNormal).normalise()];//normals of the sides of the triangle
         this.transformMatrix = new Matrix3([0,0,1,0,1,0,0,0,1]);
-        this.verts = this.staticVerts;
+        this.verts = this.staticVerts.slice(0);
         this.normal = this.staticNormal;
-        this.sideNormals = this.staticSideNormals;
+        this.sideNormals = this.staticSideNormals.slice(0);
+        this.transformMatrix = new Matrix3([1,0,0,0,1,0,0,0,1]);
+        this.transformVector = new v3(0,0,0);
     }
 
     multiply(matrix){//must be only a rotation matrix
-        this.staticVerts[0] = this.staticVerts[0].multiply(this.transformMatrix);
-        this.staticVerts[1] = this.staticVerts[1].multiply(this.transformMatrixix);
-        this.staticVerts[2] = this.staticVerts[2].multiply(this.transformMatrix);
-        this.staticNormal = this.staticNormal.multiply(this.transformMatrix);
-        this.staticSideNormals[0] = this.staticSideNormals[0].multiply(this.transformMatrix);
-        this.staticSideNormals[1] = this.staticSideNormals[1].multiply(this.transformMatrix);
-        this.staticSideNormals[2] = this.staticSideNormals[2].multiply(this.transformMatrix);
+        this.transformMatrix =  this.transformMatrix.multiply(matrix);
+        this.updatePos();
+    }
+    updatePos(){
+        this.verts[0] = this.staticVerts[0].multiply(this.transformMatrix);
+        this.verts[1] = this.staticVerts[1].multiply(this.transformMatrix);
+        this.verts[2] = this.staticVerts[2].multiply(this.transformMatrix);
+        this.normal = this.staticNormal.multiply(this.transformMatrix);
+        this.sideNormals[0] = this.staticSideNormals[0].multiply(this.transformMatrix);
+        this.sideNormals[1] = this.staticSideNormals[1].multiply(this.transformMatrix);
+        this.sideNormals[2] = this.staticSideNormals[2].multiply(this.transformMatrix);
+        this.verts[0] = Matrix3.sum(this.staticVerts[0],this.transformVector);
+        this.verts[1] = Matrix3.sum(this.staticVerts[1],this.transformVector);
+        this.verts[2] = Matrix3.sum(this.staticVerts[2],this.transformVector);
     }
     rotateX(theta){//rotate around the x adis in radians
         this.multiply(new Matrix3(  [1,0,0,
-                                    0,Math.cos(theta),Math.sin(theta),0,
+                                    0,Math.cos(theta),Math.sin(theta),
                                     0,Math.sin(theta),Math.cos(theta)]));
     }
     rotateY(theta){
         this.multiply(new Matrix3([ Math.cos(theta),0,Math.sin(theta),
-                                    0,0,0,
+                                    0,1,0,
                                     -Math.sin(theta),0,Math.cos(theta)]));
     }
     rotateZ(theta){
         this.multiply(new Matrix3([ Math.cos(theta),-Math.sin(theta),0,
                                     Math.sin(theta),Math.cos(theta),
-                                    0,0,0]));
+                                    0,0,1]));
+    }
+    transformFromTHREEGeom(object3D){
+        this.transformMatrix = Matrix3.fromTHREEGeom(object3D);
+        this.transformVector = Matrix3.fromTHREEGeom(object3D);
+        this.updatePos();
     }
 }
 class Polyhedron{
