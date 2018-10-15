@@ -37,10 +37,10 @@ function init(){
     animate();
 }
 function gameLoop(){
-    
+
     requestAnimationFrame( gameLoop );
 }
 init();
 var camera;
 var cube;
-var renderer
+var renderer;

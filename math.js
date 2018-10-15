@@ -138,6 +138,12 @@ class Polygon{
     getMinMaxOnAxis(axis){
         return [Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis)),Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis))];
     }
+    getMinOnAxis(axis){
+        Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
+    }
+    getMinOnAxis(axis){
+        Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
+    }
 }
 class Polyhedron{
     constructor(faces){
@@ -158,8 +164,26 @@ class Polyhedron{
             f.transformFromTHREEGeom(object3D);
         });
     }
-    intersectsPoly(poly){
-        
+    intersectsPolygon(poly){
+        //check if the polygon is less than the max and greater thna the min
+        let polyO = poly.getMinMaxOnAxis(poly.normal);
+        let polyhed = this.getMinMaxOnAxis(poly.normal);
+        if(polyhed[1]>=polyO[0]&&polyhed[0]<=polyO[1]){
+            let inter = true;
+            for(let i = 0; i < 3 && inter; i ++){
+                polyO = poly.getMaxOnAxis(poly.sideNormals[i]);
+                polyhed = this.getMinOnAxis(poly.sideNormals[i]);
+                inter = (polyO>=polyhed);
+            }
+            if(!inter) return {intersect : false};
+            for(let i = 0; i < this.faces.length && inter; i ++){
+                polyO = poly.getMinOnAxis(this.faces[i].normal);
+                polyhed = this.getMinMaxOnAxis(this.faces[i].normal);
+                inter = (polyhed>=polyO);
+            }
+        } else {
+            return {intersect : false}
+        }
     }
     intersectsPolyhedron(polyhedron){
         
@@ -167,8 +191,22 @@ class Polyhedron{
     getMinMaxOnAxis(axis){
         let outliers = this.faces[0].getMinMaxOnAxis(axis);
         for(let i = 1; i < this.faces.length; i++){
-            let bufO = this.faces[i].getMinMaxOnAxis();
+            let bufO = this.faces[i].getMinMaxOnAxis(axis);
             outliers = [Math.min(outliers[0],bufO[0]),Math.max(outliers[1],bufO[1])];
+        }
+        return outliers;
+    }
+    getMinMaxOnAxis(axis){
+        let outliers = this.faces[0].getMinOnAxis(axis);
+        for(let i = 1; i < this.faces.length; i++){
+            outliers = Math.min(outliers[0],this.faces[i].getMinOnAxis(axis));
+        }
+        return outliers;
+    }
+    getMaxOnAxis(axis){
+        let outliers = this.faces[0].getMaxOnAxis(axis);
+        for(let i = 1; i < this.faces.length; i++){
+            outliers = Math.max(outliers[0],this.faces[i].getMaxOnAxis(axis));
         }
         return outliers;
     }
