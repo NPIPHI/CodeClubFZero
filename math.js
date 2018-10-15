@@ -88,12 +88,12 @@ class Polygon{
         this.staticNormal = v3.cross(v3.dif(p1,p2),v3.dif(p2,p3)).normalise();//normal vector of the polygon
         this.staticVerts = [p1,p2,p3];
         this.staticSideNormals = [v3.cross(v3.dif(p1,p2),this.staticNormal).normalise(),v3.cross(v3.dif(p2,p3),this.staticNormal).normalise(),v3.cross(v3.dif(p3,p1),this.staticNormal).normalise()];//normals of the sides of the triangle
-        this.transformMatrix = new Matrix3([0,0,1,0,1,0,0,0,1]);
-        this.verts = this.staticVerts.slice(0);
-        this.normal = this.staticNormal;
-        this.sideNormals = this.staticSideNormals.slice(0);
         this.transformMatrix = new Matrix3([1,0,0,0,1,0,0,0,1]);
         this.transformVector = new v3(0,0,0);
+        this.verts = [,,,];
+        this.sideNormals = [,,,];
+        this.boundingBox = [];//minX. minY, minZ, maxX, maxY, maxZ
+        this.updatePos();
     }
 
     multiply(matrix){//must be only a rotation matrix
@@ -108,21 +108,24 @@ class Polygon{
         this.sideNormals[0] = this.staticSideNormals[0].multiply(this.transformMatrix);
         this.sideNormals[1] = this.staticSideNormals[1].multiply(this.transformMatrix);
         this.sideNormals[2] = this.staticSideNormals[2].multiply(this.transformMatrix);
-        this.verts[0] = Matrix3.sum(this.staticVerts[0],this.transformVector);
-        this.verts[1] = Matrix3.sum(this.staticVerts[1],this.transformVector);
-        this.verts[2] = Matrix3.sum(this.staticVerts[2],this.transformVector);
+        this.verts[0] = v3.sum(this.staticVerts[0],this.transformVector);
+        this.verts[1] = v3.sum(this.staticVerts[1],this.transformVector);
+        this.verts[2] = v3.sum(this.staticVerts[2],this.transformVector);
+        this.boundingBox = [this.verts[0].x,this.verts[0].y,this.verts[0].z,this.verts[0].x,this.verts[0].y,this.verts[0].z]; 
+        this.boundingBox = [Math.min(this.boundingBox[0],this.verts[1].x),Math.min(this.boundingBox[1],this.verts[1].y),Math.min(this.boundingBox[2],this.verts[1].z),Math.max(this.boundingBox[3],this.verts[1].x),Math.max(this.boundingBox[4],this.verts[1].y),Math.max(this.boundingBox[5],this.verts[1].z)]; 
+        this.boundingBox = [Math.min(this.boundingBox[0],this.verts[2].x),Math.min(this.boundingBox[1],this.verts[2].y),Math.min(this.boundingBox[2],this.verts[2].z),Math.max(this.boundingBox[3],this.verts[2].x),Math.max(this.boundingBox[4],this.verts[2].y),Math.max(this.boundingBox[5],this.verts[2].z)];
     }
     rotateX(theta){//rotate around the x adis in radians
         this.multiply(new Matrix3(  [1,0,0,
                                     0,Math.cos(theta),Math.sin(theta),
                                     0,Math.sin(theta),Math.cos(theta)]));
     }
-    rotateY(theta){
+    rotateY(theta){//rotate around the y adis in radians
         this.multiply(new Matrix3([ Math.cos(theta),0,Math.sin(theta),
                                     0,1,0,
                                     -Math.sin(theta),0,Math.cos(theta)]));
     }
-    rotateZ(theta){
+    rotateZ(theta){//rotate around the z adis in radians
         this.multiply(new Matrix3([ Math.cos(theta),-Math.sin(theta),0,
                                     Math.sin(theta),Math.cos(theta),
                                     0,0,1]));
@@ -132,9 +135,41 @@ class Polygon{
         this.transformVector = Matrix3.fromTHREEGeom(object3D);
         this.updatePos();
     }
+    getMinMaxOnAxis(axis){
+        return [Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis)),Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis))];
+    }
 }
 class Polyhedron{
     constructor(faces){
         this.faces=faces;
+        this.updatePos();
+    }
+    updatePos(){
+        this.calcBoundingBox();
+    }
+    calcBoundingBox(){
+        this.boundingBox = this.faces[0].boundingBox;
+        this.faces.forEach(f=>{
+            this.boundingBox = [Math.min(this.boundingBox[0],f.boundingBox[0]),Math.min(this.boundingBox[1],f.boundingBox[1]),Math.min(this.boundingBox[1],f.boundingBox[1]),Math.max(this.boundingBox[3],f.boundingBox[3]),Math.max(this.boundingBox[4],f.boundingBox[4]),Math.max(this.boundingBox[5],f.boundingBox[5])];
+        })
+    }
+    transformFromTHREEGeom(object3D){
+        this.faces.forEach(f => {
+            f.transformFromTHREEGeom(object3D);
+        });
+    }
+    intersectsPoly(poly){
+        
+    }
+    intersectsPolyhedron(polyhedron){
+        
+    }
+    getMinMaxOnAxis(axis){
+        let outliers = this.faces[0].getMinMaxOnAxis(axis);
+        for(let i = 1; i < this.faces.length; i++){
+            let bufO = this.faces[i].getMinMaxOnAxis();
+            outliers = [Math.min(outliers[0],bufO[0]),Math.max(outliers[1],bufO[1])];
+        }
+        return outliers;
     }
 }
