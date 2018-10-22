@@ -14,6 +14,9 @@ class v2{// 2D vector. pertend that it is immutable
     getMagnitude2(){// magnitude squared of this vect. Use when efficency is important 
         return this.x*this.x+this.y*this.y;
     }
+    getAngle(){
+        return Math.atan2(this.y,this.x);
+    }
     static sum(v1,v2){//sum of two vectors
         return new v3(v1.x+v2.x,v1.y+v2.y);
     }
@@ -65,6 +68,11 @@ class v3{//3D vector. pertend that it is immutable
     }
     static fromTHREEGeom(object3D){
         return new v3(object3D.matrix.elements[12],object3D.matrix.elements[13],object3D.matrix.elements[14]);
+    }
+    static getRotateMatrixFromVect(vect){
+        let zAng = (vect.x||vect.y)?new v2(vect.x, vect.y).getAngle() - Math.PI/2:0;
+        let xAng = (vect.z||vect.y)?new v2(vect.z, vect.y).getAngle() - Math.PI/2:0;
+        return new Matrix3([Math.cos(zAng),-Math.sin(zAng),0,Math.sin(zAng),Math.cos(zAng),0,0,0,1]).multiply(new Matrix3([1,0,0,0,Math.cos(xAng),-Math.sin(xAng),0,Math.sin(xAng),Math.cos(xAng)]))
     }
 }
 class Matrix3{// pertend it is immutable
@@ -118,7 +126,7 @@ class Polygon{
     rotateX(theta){//rotate around the x adis in radians
         this.multiply(new Matrix3(  [1,0,0,
                                     0,Math.cos(theta),Math.sin(theta),
-                                    0,Math.sin(theta),Math.cos(theta)]));
+                                    0,-Math.sin(theta),Math.cos(theta)]));
     }
     rotateY(theta){//rotate around the y adis in radians
         this.multiply(new Matrix3([ Math.cos(theta),0,Math.sin(theta),
@@ -127,22 +135,26 @@ class Polygon{
     }
     rotateZ(theta){//rotate around the z adis in radians
         this.multiply(new Matrix3([ Math.cos(theta),-Math.sin(theta),0,
-                                    Math.sin(theta),Math.cos(theta),
+                                    Math.sin(theta),Math.cos(theta),0,
                                     0,0,1]));
     }
     transformFromTHREEGeom(object3D){
         this.transformMatrix = Matrix3.fromTHREEGeom(object3D);
         this.transformVector = Matrix3.fromTHREEGeom(object3D);
         this.updatePos();
+    } 
+    transform(vect){
+        this.transformVector = v3.sum(this.transformVector,vect);
+        this.updatePos();
     }
     getMinMaxOnAxis(axis){
         return [Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis)),Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis))];
     }
     getMinOnAxis(axis){
-        Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
+        return Math.min(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
     }
-    getMinOnAxis(axis){
-        Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
+    getMaxOnAxis(axis){
+        return Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
     }
 }
 class Polyhedron{
@@ -161,13 +173,38 @@ class Polyhedron{
     }
     transformFromTHREEGeom(object3D){
         this.faces.forEach(f => {
-            f.transformFromTHREEGeom(object3D);
+            f.transformFromTHREEGeom(object33D);
+        });
+        this.updatePos();
+    }
+    translate(vect){
+        this.faces.forEach(f => {
+            f.transform(vect);
+        });
+        this.updatePos();
+    }
+    rotateX(theta){
+        this.faces.forEach(f => {
+            f.rotateX(theta);
         });
     }
-    intersectsPolygon(poly){
-        //check if the polygon is less than the max and greater thna the min
+    rotateY(theta){
+        this.faces.forEach(f => {
+            f.rotateY(theta);
+        });
+    }
+    rotateZ(theta){
+        this.faces.forEach(f => {
+            f.rotateZ(theta);
+        });
+    }
+    intersectsPolygon(poly){//returns an object with properties intersect, axis, and overlap
+        if(!this.intersectsBoundingBox(poly)){
+            return {intersect : false}
+        }
         let polyO = poly.getMinMaxOnAxis(poly.normal);
         let polyhed = this.getMinMaxOnAxis(poly.normal);
+        let overlap = polyO[0]-polyhed[0];
         if(polyhed[1]>=polyO[0]&&polyhed[0]<=polyO[1]){
             let inter = true;
             for(let i = 0; i < 3 && inter; i ++){
@@ -178,9 +215,11 @@ class Polyhedron{
             if(!inter) return {intersect : false};
             for(let i = 0; i < this.faces.length && inter; i ++){
                 polyO = poly.getMinOnAxis(this.faces[i].normal);
-                polyhed = this.getMinMaxOnAxis(this.faces[i].normal);
+                polyhed = this.getMaxOnAxis(this.faces[i].normal);
                 inter = (polyhed>=polyO);
             }
+            if(!inter) return {intersect : false}
+            return {intersect : true, axis : poly.normal, overlap : overlap}
         } else {
             return {intersect : false}
         }
@@ -196,18 +235,33 @@ class Polyhedron{
         }
         return outliers;
     }
-    getMinMaxOnAxis(axis){
+    getMinOnAxis(axis){
         let outliers = this.faces[0].getMinOnAxis(axis);
         for(let i = 1; i < this.faces.length; i++){
-            outliers = Math.min(outliers[0],this.faces[i].getMinOnAxis(axis));
+            outliers = Math.min(outliers,this.faces[i].getMinOnAxis(axis));
         }
         return outliers;
     }
     getMaxOnAxis(axis){
         let outliers = this.faces[0].getMaxOnAxis(axis);
         for(let i = 1; i < this.faces.length; i++){
-            outliers = Math.max(outliers[0],this.faces[i].getMaxOnAxis(axis));
+            outliers = Math.max(outliers,this.faces[i].getMaxOnAxis(axis));
         }
         return outliers;
+    }
+    static make1x1cube(){
+        let p1 = new v3(-0.5,-0.5,-0.5);
+        let p2 = new v3(0.5,-0.5,-0.5);
+        let p3 = new v3(0.5,-0.5,0.5);
+        let p4 = new v3(-0.5,-0.5,0.5);
+        let p5 = new v3(-0.5,0.5,-0.5);
+        let p6 = new v3(0.5,0.5,-0.5);
+        let p7 = new v3(0.5,0.5,0.5);
+        let p8 = new v3(-0.5,0.5,0.5);
+        return new Polyhedron([new Polygon(p1,p2,p3), new Polygon(p1,p3,p4), new Polygon(p1,p5,p6), new Polygon(p1,p6,p2), new Polygon(p2,p6,p7), new Polygon(p2,p7,p3),
+                            new Polygon(p3,p7,p8), new Polygon(p3,p8,p4), new Polygon(p4,p8,p5), new Polygon(p4,p5,p1), new Polygon(p5,p8,p7), new Polygon(p5,p7,p6)]);
+    }
+    intersectsBoundingBox(poly){
+        return this.boundingBox[0]<=poly.boundingBox[3]&&poly.boundingBox[0]<=this.boundingBox[3]&&this.boundingBox[1]<=poly.boundingBox[4]&&poly.boundingBox[1]<=this.boundingBox[4]&&this.boundingBox[2]<=poly.boundingBox[5]&&poly.boundingBox[2]<=this.boundingBox[5];
     }
 }
