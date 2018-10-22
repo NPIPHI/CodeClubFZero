@@ -17,6 +17,9 @@ class v2{// 2D vector. pertend that it is immutable
     getAngle(){
         return Math.atan2(this.y,this.x);
     }
+    multiply(m2){
+        return new v2(this.x*m2.m[0]+this.y*m2.m[2],this.x*m2.m[1]+this.y*m2.m[3]);
+    }
     static sum(v1,v2){//sum of two vectors
         return new v3(v1.x+v2.x,v1.y+v2.y);
     }
@@ -75,6 +78,17 @@ class v3{//3D vector. pertend that it is immutable
         return new Matrix3([Math.cos(zAng),-Math.sin(zAng),0,Math.sin(zAng),Math.cos(zAng),0,0,0,1]).multiply(new Matrix3([1,0,0,0,Math.cos(xAng),-Math.sin(xAng),0,Math.sin(xAng),Math.cos(xAng)]))
     }
 }
+class Matrix2{
+    constructor(values){
+        if(values.length!=4){
+            throw "incorect length"
+        }
+        this.m = new Float32Array(values);
+    }
+    static fromAngle(theta){
+        return new Matrix2([Math.cos(theta),-Math.sin(theta),Math.sin(theta),Math.cos(theta)]);
+    }
+}
 class Matrix3{// pertend it is immutable
     constructor(values){//9 element list. left to right top to bottom
         if(values.length!=9){
@@ -95,7 +109,7 @@ class Polygon{
     constructor(p1,p2,p3){
         this.staticNormal = v3.cross(v3.dif(p1,p2),v3.dif(p2,p3)).normalise();//normal vector of the polygon
         this.staticVerts = [p1,p2,p3];
-        this.staticSideNormals = [v3.cross(v3.dif(p1,p2),this.staticNormal).normalise(),v3.cross(v3.dif(p2,p3),this.staticNormal).normalise(),v3.cross(v3.dif(p3,p1),this.staticNormal).normalise()];//normals of the sides of the triangle
+        this.staticSideNormals = [v3.cross(v3.dif(p2,p1),this.staticNormal).normalise(),v3.cross(v3.dif(p3,p2),this.staticNormal).normalise(),v3.cross(v3.dif(p1,p3),this.staticNormal).normalise()];//normals of the sides of the triangle
         this.transformMatrix = new Matrix3([1,0,0,0,1,0,0,0,1]);
         this.transformVector = new v3(0,0,0);
         this.verts = [,,,];
@@ -143,8 +157,12 @@ class Polygon{
         this.transformVector = Matrix3.fromTHREEGeom(object3D);
         this.updatePos();
     } 
-    transform(vect){
+    translate(vect){
         this.transformVector = v3.sum(this.transformVector,vect);
+        this.updatePos();
+    }
+    translateAbsolute(vect){
+        this.transformVector = vect;
         this.updatePos();
     }
     getMinMaxOnAxis(axis){
@@ -168,7 +186,7 @@ class Polyhedron{
     calcBoundingBox(){
         this.boundingBox = this.faces[0].boundingBox;
         this.faces.forEach(f=>{
-            this.boundingBox = [Math.min(this.boundingBox[0],f.boundingBox[0]),Math.min(this.boundingBox[1],f.boundingBox[1]),Math.min(this.boundingBox[1],f.boundingBox[1]),Math.max(this.boundingBox[3],f.boundingBox[3]),Math.max(this.boundingBox[4],f.boundingBox[4]),Math.max(this.boundingBox[5],f.boundingBox[5])];
+            this.boundingBox = [Math.min(this.boundingBox[0],f.boundingBox[0]),Math.min(this.boundingBox[1],f.boundingBox[1]),Math.min(this.boundingBox[2],f.boundingBox[2]),Math.max(this.boundingBox[3],f.boundingBox[3]),Math.max(this.boundingBox[4],f.boundingBox[4]),Math.max(this.boundingBox[5],f.boundingBox[5])];
         })
     }
     transformFromTHREEGeom(object3D){
@@ -179,7 +197,13 @@ class Polyhedron{
     }
     translate(vect){
         this.faces.forEach(f => {
-            f.transform(vect);
+            f.translate(vect);
+        });
+        this.updatePos();
+    }
+    translateAbsolute(vect){
+        this.faces.forEach(f => {
+            f.translateAbsolute(vect);
         });
         this.updatePos();
     }
