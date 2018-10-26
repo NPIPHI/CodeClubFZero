@@ -20,6 +20,9 @@ class v2{// 2D vector. pertend that it is immutable
     multiply(m2){
         return new v2(this.x*m2.m[0]+this.y*m2.m[2],this.x*m2.m[1]+this.y*m2.m[3]);
     }
+    scale(scaleFactor){
+        return new v2(this.x*scaleFactor,this.y*scaleFactor);
+    }
     static sum(v1,v2){//sum of two vectors
         return new v3(v1.x+v2.x,v1.y+v2.y);
     }
@@ -57,6 +60,15 @@ class v3{//3D vector. pertend that it is immutable
     clone(){
         throw "vectors should be immutable. If you are using this function you are doing it wrong";
     }
+    getTHREE(){
+        return new THREE.Vector3(this.x,this.y,this.z);
+    }
+    skewSymetricCrossProduct(){
+        return new Matrix3([0,-this.z,this.y,this.z,0,-this.x,-this.y,this.x,0]);
+    }
+    equals(vect3){
+        return this.x==vect3.x&&this.y==vect3.y&&this.z==vect3.z;
+    }
     static dot(v1,v2){
         return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
     }
@@ -71,11 +83,6 @@ class v3{//3D vector. pertend that it is immutable
     }
     static fromTHREEGeom(object3D){
         return new v3(object3D.matrix.elements[12],object3D.matrix.elements[13],object3D.matrix.elements[14]);
-    }
-    static getRotateMatrixFromVect(vect){
-        let zAng = (vect.x||vect.y)?new v2(vect.x, vect.y).getAngle() - Math.PI/2:0;
-        let xAng = (vect.z||vect.y)?new v2(vect.z, vect.y).getAngle() - Math.PI/2:0;
-        return new Matrix3([Math.cos(zAng),-Math.sin(zAng),0,Math.sin(zAng),Math.cos(zAng),0,0,0,1]).multiply(new Matrix3([1,0,0,0,Math.cos(xAng),-Math.sin(xAng),0,Math.sin(xAng),Math.cos(xAng)]))
     }
 }
 class Matrix2{
@@ -101,8 +108,31 @@ class Matrix3{// pertend it is immutable
                             this.m[3]*matrix.m[0]+this.m[4]*matrix.m[3]+this.m[5]*matrix.m[6],this.m[3]*matrix.m[1]+this.m[4]*matrix.m[4]+this.m[5]*matrix.m[7],this.m[3]*matrix.m[2]+this.m[4]*matrix.m[5]+this.m[5]*matrix.m[8],
                             this.m[6]*matrix.m[0]+this.m[7]*matrix.m[3]+this.m[8]*matrix.m[6],this.m[6]*matrix.m[1]+this.m[7]*matrix.m[4]+this.m[8]*matrix.m[7],this.m[6]*matrix.m[2]+this.m[7]*matrix.m[5]+this.m[8]*matrix.m[8]]);
     }
+    scale(scaleFactor){
+        return new Matrix3([this.m[0]*scaleFactor,this.m[1]*scaleFactor,this.m[2]*scaleFactor,this.m[3]*scaleFactor,this.m[4]*scaleFactor,this.m[5]*scaleFactor,this.m[6]*scaleFactor,this.m[7]*scaleFactor,this.m[8]*scaleFactor])
+    }
     static fromTHREEGeom(object3D){
         return new Matrix3([object3D.matrix.elements[0],object3D.matrix.elements[1],object3D.matrix.elements[2],object3D.matrix.elements[4],object3D.matrix.elements[5],object3D.matrix.elements[6],object3D.matrix.elements[8],object3D.matrix.elements[9],object3D.matrix.elements[10]]);
+    }
+    static MakeRotationMatrix( startV, endV ){  
+        if(startV.equals(endV)){
+            return Matrix3.identity();
+        }
+        if(startV.equals(endV.scale(-1))){
+            return Matrix3.identity().scale(-1);
+        }
+        let v = endV.cross(startV);
+        let s = v.getMagnitude();
+        let c = endV.dot(startV);
+        v = v.skewSymetricCrossProduct();
+        return Matrix3.sum(Matrix3.sum(Matrix3.identity(),v),v.multiply(v).scale((1-c)/(s*s)));
+
+    }
+    static identity(){
+        return new Matrix3([1,0,0,0,1,0,0,0,1]);
+    }
+    static sum(m1,m2){
+        return new Matrix3([m1.m[0]+m2.m[0],m1.m[1]+m2.m[1],m1.m[2]+m2.m[2],m1.m[3]+m2.m[3],m1.m[4]+m2.m[4],m1.m[5]+m2.m[5],m1.m[6]+m2.m[6],m1.m[7]+m2.m[7],m1.m[8]+m2.m[8]]);
     }
 }
 class Polygon{
@@ -130,9 +160,9 @@ class Polygon{
         this.sideNormals[0] = this.staticSideNormals[0].multiply(this.transformMatrix);
         this.sideNormals[1] = this.staticSideNormals[1].multiply(this.transformMatrix);
         this.sideNormals[2] = this.staticSideNormals[2].multiply(this.transformMatrix);
-        this.verts[0] = v3.sum(this.staticVerts[0],this.transformVector);
-        this.verts[1] = v3.sum(this.staticVerts[1],this.transformVector);
-        this.verts[2] = v3.sum(this.staticVerts[2],this.transformVector);
+        this.verts[0] = v3.sum(this.verts[0],this.transformVector);
+        this.verts[1] = v3.sum(this.verts[1],this.transformVector);
+        this.verts[2] = v3.sum(this.verts[2],this.transformVector);
         this.boundingBox = [this.verts[0].x,this.verts[0].y,this.verts[0].z,this.verts[0].x,this.verts[0].y,this.verts[0].z]; 
         this.boundingBox = [Math.min(this.boundingBox[0],this.verts[1].x),Math.min(this.boundingBox[1],this.verts[1].y),Math.min(this.boundingBox[2],this.verts[1].z),Math.max(this.boundingBox[3],this.verts[1].x),Math.max(this.boundingBox[4],this.verts[1].y),Math.max(this.boundingBox[5],this.verts[1].z)]; 
         this.boundingBox = [Math.min(this.boundingBox[0],this.verts[2].x),Math.min(this.boundingBox[1],this.verts[2].y),Math.min(this.boundingBox[2],this.verts[2].z),Math.max(this.boundingBox[3],this.verts[2].x),Math.max(this.boundingBox[4],this.verts[2].y),Math.max(this.boundingBox[5],this.verts[2].z)];
@@ -191,7 +221,7 @@ class Polyhedron{
     }
     transformFromTHREEGeom(object3D){
         this.faces.forEach(f => {
-            f.transformFromTHREEGeom(object33D);
+            f.transformFromTHREEGeom(object3D);
         });
         this.updatePos();
     }
@@ -204,6 +234,13 @@ class Polyhedron{
     translateAbsolute(vect){
         this.faces.forEach(f => {
             f.translateAbsolute(vect);
+        });
+        this.updatePos();
+    }
+    rotateAbsolute(matrix3){
+        this.faces.forEach(f => {
+            f.transformMatrix = matrix3;
+            f.updatePos();
         });
         this.updatePos();
     }
