@@ -204,6 +204,9 @@ class Polygon{
     getMaxOnAxis(axis){
         return Math.max(this.verts[0].dot(axis),this.verts[1].dot(axis),this.verts[2].dot(axis));
     }
+    static fromArray(points){
+        return new Polygon(new v3(points[0],points[1],points[2]), new v3(points[3],points[4],points[5]),new v3(points[6],points[7],points[8]));
+    }
 }
 class Polyhedron{
     constructor(faces){
@@ -309,6 +312,13 @@ class Polyhedron{
             outliers = Math.max(outliers,this.faces[i].getMaxOnAxis(axis));
         }
         return outliers;
+    }
+    fromArray(points){//array of numbers ex: [1,2,3, 4,3,5 , 3,2,1] = new Polyhedron([new Polygon(new v3(1,2,3),new v3(4,3,5), new v3(3,2,1))]);
+        let polys = [];
+        for(let i = 0; i < points.length; i += 9){
+            polys.push(new Polygon(new v3(points[i],points[i+1],points[i+2]), new v3(points[i+3],points[i+4],points[i+5]),new v3(points[i+6],points[i+7],points[i+8])));
+        }
+        return new Polyhedron(polys);
     }
     static make1x1cube(){
         let p1 = new v3(-0.5,-0.5,-0.5);

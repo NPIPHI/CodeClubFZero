@@ -75,6 +75,7 @@ class Player{
             console.log();
         }
         let movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
+        movV.scale(0.3);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
         movV = new v3(movV.x,0,movV.y);
         movV = movV.multiply(Matrix3.MakeRotationMatrix(new v3(0,1,0),this.gravity.scale(-1)));
@@ -117,15 +118,52 @@ class Player{
 }
 class Track{
     constructor(){
-        for(let i = 0; i < trackPts.length; i+=9){
-            collisionPolys.push(new Polygon(new v3(trackPts[i],trackPts[i+1],trackPts[i+2]), new v3(trackPts[i+3], trackPts[i+4], trackPts[i+5]), new v3(trackPts[i+6],trackPts[i+7],trackPts[i+8])));
+        let arr = Track.fromArray(Track.makeSpiral(30,10,20,3,20));
+        for(let i = 0; i < arr.length; i+=9){
+            collisionPolys.push(Polygon.fromArray(arr.slice(i,i+9)));
         }
         this.mesh = new THREE.BufferGeometry();
-        this.mesh.addAttribute('position', new THREE.BufferAttribute(trackPts,3));
-        this.mesh.computeVertexNormals();
+        this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(arr),3));
+        this.mesh.computeVertexNormals();   
         let material =  new THREE.MeshLambertMaterial({color : 0xff0000});
         this.mesh = new THREE.Mesh( this.mesh, material);
         scene.add(this.mesh);
+    }
+    static fromArray(points){
+        /*organised like    3   5
+                            2   3
+                            0   1*/
+        let list = [];
+        for(let i =0; i < (points.length)-2; i+=2){
+            list.push(points[i].x);
+            list.push(points[i].y);
+            list.push(points[i].z);
+            list.push(points[i+2].x);
+            list.push(points[i+2].y);
+            list.push(points[i+2].z);
+            list.push(points[i+1].x);
+            list.push(points[i+1].y);
+            list.push(points[i+1].z);
+
+            list.push(points[i+2].x);
+            list.push(points[i+2].y);
+            list.push(points[i+2].z);
+            list.push(points[i+3].x);
+            list.push(points[i+3].y);
+            list.push(points[i+3].z);
+            list.push(points[i+1].x);
+            list.push(points[i+1].y);
+            list.push(points[i+1].z);
+        }
+        return list;
+    }
+    static makeSpiral(length, radius, width, sprial, resolution){//length: start to end  radius: center to edge  width: width of the track  spiral: number of rotations  resolution: rumber of segments per rotation
+        let points = [];
+        for(let i = 0; i <= resolution*sprial; i++){
+            points.push(new v3(Math.cos(i*Math.PI*2/resolution)*radius,Math.sin(i*Math.PI*2/resolution)*radius,width+length*i/resolution*sprial));
+            points.push(new v3(Math.cos(i*Math.PI*2/resolution)*radius,Math.sin(i*Math.PI*2/resolution)*radius,length*i/resolution*sprial));
+        }
+        return points;
     }
 }
 var trackPts = new Float32Array([-10,0,-10, -10,0,10, 10,0,10,
