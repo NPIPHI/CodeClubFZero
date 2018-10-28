@@ -47,9 +47,9 @@ class CameraControl{
         camera.position.y = v3.y;
         camera.position.z = v3.z;
     }
-    setDirection(v2){
-        camera.setRotationFromAxisAngle(new THREE.Vector3(0,1,0), v2.x);
-        camera.rotateX(v2.y);
+    setDirection(rotation){
+        camera.setRotationFromAxisAngle(new THREE.Vector3(0,1,0), rotation.x);
+        camera.rotateX(rotation.y);
     }
 }
 class Player{
@@ -63,7 +63,8 @@ class Player{
         this.group.add(this.mesh);
         scene.add(this.group);
         this.geom = Polyhedron.make1x1cube();
-        this.group.add(camera);
+        this.mesh.add(camera);
+        this.rotation = Matrix3.identity();
     }
     update(){
         this.calculateMovment();
@@ -78,7 +79,7 @@ class Player{
         movV.scale(0.3);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
         movV = new v3(movV.x,0,movV.y);
-        movV = movV.multiply(Matrix3.MakeRotationMatrix(new v3(0,1,0),this.gravity.scale(-1)));
+        movV = movV.multiply(this.rotation);
         this.pos = v3.sum(this.pos,movV);
         this.pos = v3.sum(this.pos,this.gravity.scale(0.1));
         this.calculatePosition();
@@ -93,6 +94,7 @@ class Player{
             }
         });
         this.calculatePosition();
+        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0),this.gravity.scale(-1));
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
@@ -110,7 +112,12 @@ class Player{
             while(this.dir.x<0){
                 this.dir.x+=Math.PI*2;
             }
-            this.mesh.lookAt(this.gravity.scale(-1).getTHREE());
+            this.mesh.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.mesh.matrix.elements[3],
+                                        this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.mesh.matrix.elements[7],
+                                        this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.mesh.matrix.elements[11],
+                                        this.mesh.matrix.elements[12], this.mesh.matrix.elements[13], this.mesh.matrix.elements[14], this.mesh.matrix.elements[15]];
+            this.mesh.matrixWorldNeedsUpdate = true;
+            this.mesh.matrixAutoUpdate = false;
         }
         camCont.setPosition(new v3(Math.sin(this.dir.x)*10*Math.cos(this.dir.y),Math.sin(this.dir.y)*-10,Math.cos(this.dir.x)*10*Math.cos(this.dir.y)));
         camCont.setDirection(this.dir);
@@ -118,7 +125,12 @@ class Player{
 }
 class Track{
     constructor(){
-        let arr = Track.fromArray(Track.makeSpiral(30,10,20,3,20));
+        let arr = Track.makeSpiral(30,20,40,3,40);
+        arr.unshift(new v3(-15,0,-15));
+        arr.unshift(new v3(5,0,-15));
+        arr.unshift(new v3(-15,0,5));
+        arr.unshift(new v3(5,0,5));
+        arr = Track.fromArray(arr);
         for(let i = 0; i < arr.length; i+=9){
             collisionPolys.push(Polygon.fromArray(arr.slice(i,i+9)));
         }
