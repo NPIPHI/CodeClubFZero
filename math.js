@@ -32,6 +32,10 @@ class v2{// 2D vector. pertend that it is immutable
 }
 class v3{//3D vector. pertend that it is immutable
     constructor(x,y,z){
+        if(isNaN(x)){
+            throw "NaN exception";
+        }
+        this.x = x;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -69,6 +73,9 @@ class v3{//3D vector. pertend that it is immutable
     equals(vect3){
         return this.x==vect3.x&&this.y==vect3.y&&this.z==vect3.z;
     }
+    scaleByAxis(xscale,yscale,zscale){
+        return new v3(this.x*xscale,this.y*yscale, this.z*zscale);
+    }
     static dot(v1,v2){
         return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
     }
@@ -83,6 +90,13 @@ class v3{//3D vector. pertend that it is immutable
     }
     static fromTHREEGeom(object3D){
         return new v3(object3D.matrix.elements[12],object3D.matrix.elements[13],object3D.matrix.elements[14]);
+    }
+    static mean(vects){
+        let sum = new v3(0,0,0);
+        vects.forEach(v => {
+            sum = v3.sum(v.scale(1/vects.length),sum);
+        });
+        return sum;
     }
 }
 class Matrix2{

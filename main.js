@@ -14,15 +14,44 @@ function init(){
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
     renderer = new THREE.WebGLRenderer();
+    renderer.setClearColor( 0xADD8f6);
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
     let light = new THREE.PointLight(0xffffff, 1, 100);
+    {
+        let box = new THREE.BoxGeometry(50,500,50);
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box.position.x=-50;
+        box.position.y=-200;
+        box.position.z=50;
+        scene.add(box);
+        box = new THREE.BoxGeometry(10000,1,10000);
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x8f8f8f}));
+        box.position.y=-400;
+        scene.add(box);
+        box = new THREE.BoxGeometry(50,500,50);
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box.position.x=-50;
+        box.position.y=-200;
+        box.position.z=500;
+        scene.add(box);
+        box = new THREE.BoxGeometry(50,500,50);
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box.position.x=100;
+        box.position.y=-200;
+        box.position.z=450;
+        scene.add(box);
+        box = new THREE.BoxGeometry(50,500,50);
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box.position.x=150;
+        box.position.y=-200;
+        box.position.z=300;
+        scene.add(box);
+    }
     light.position.set(3,3,3);
     scene.add(light);
     light = new THREE.AmbientLight(0x3f3f3f, 1, 100);
     scene.add(light);
-    camera.position.z = 5;
-    camera.position.y = 2;
     p1 = new Player();
     camCont = new CameraControl(camera);
     new Track();    
@@ -55,6 +84,7 @@ class CameraControl{
 class Player{
     constructor(){
         this.gravity = new v3(0,-1,0)
+        this.surfaceNormal = new v3(0,1,0);
         this.pos = new v3(0,0,0);
         this.mov = new v3(0,0,0);
         this.dir = new v2(0,0);
@@ -85,16 +115,28 @@ class Player{
         this.calculatePosition();
     }
     calculateCollision(){
+        let collisionAxes = []
         collisionPolys.forEach(poly =>{
             let inter = this.geom.intersectsPolygon(poly);
             if(inter.intersect){
                 this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
-                this.gravity = inter.axis.scale(-1);
+                collisionAxes.push(inter.axis);
                 this.calculatePosition();
             }
         });
+        if(collisionAxes.length){
+            try{
+                collisionAxes = v3.mean(collisionAxes).normalise();
+            } catch(e){
+                collisionAxes = new v3(0,1,0);
+            }
+            this.surfaceNormal = v3.mean([collisionAxes, this.surfaceNormal, this.surfaceNormal, this.surfaceNormal]);
+        } else {
+            this.surfaceNormal = this.surfaceNormal.scaleByAxis(0.95,1.1,0.95).normalise();
+        }
+        this.gravity = this.surfaceNormal.scale(-1);
         this.calculatePosition();
-        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0),this.gravity.scale(-1));
+        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0),this.surfaceNormal);
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
@@ -119,17 +161,16 @@ class Player{
             this.mesh.matrixWorldNeedsUpdate = true;
             this.mesh.matrixAutoUpdate = false;
         }
-        camCont.setPosition(new v3(Math.sin(this.dir.x)*10*Math.cos(this.dir.y),Math.sin(this.dir.y)*-10,Math.cos(this.dir.x)*10*Math.cos(this.dir.y)));
+        camCont.setPosition(new v3(Math.sin(this.dir.x)*10*Math.cos(this.dir.y),Math.sin(this.dir.y)*-10+1,Math.cos(this.dir.x)*10*Math.cos(this.dir.y)));
         camCont.setDirection(this.dir);
     }
 }
 class Track{
     constructor(){
-        let arr = Track.makeSpiral(30,20,40,3,40);
-        arr.unshift(new v3(-15,0,-15));
-        arr.unshift(new v3(5,0,-15));
-        arr.unshift(new v3(-15,0,5));
-        arr.unshift(new v3(5,0,5));
+        let arr = Track.makeSpiral(50,20,40,3,50);
+        arr.unshift(new v3(-10,-10,-10));
+        arr.unshift(new v3(-10,-10,35));
+
         arr = Track.fromArray(arr);
         for(let i = 0; i < arr.length; i+=9){
             collisionPolys.push(Polygon.fromArray(arr.slice(i,i+9)));
