@@ -1,0 +1,23 @@
+{
+  "name": "fzero",
+  "version": "1.0.0",
+  "description": "A 3-D racing game developed on the platform three.JS",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.16.4"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NPIPHI/CodeClubFZero.git"
+  },
+  "author": "Nicholas",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NPIPHI/CodeClubFZero/issues"
+  },
+  "homepage": "https://github.com/NPIPHI/CodeClubFZero#readme"
+}

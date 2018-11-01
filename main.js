@@ -19,31 +19,41 @@ function init(){
     document.body.appendChild( renderer.domElement );
     let light = new THREE.PointLight(0xffffff, 1, 100);
     {
+        let road = new THREE.TextureLoader().load("./road.png");
+        road.wrapS = THREE.RepeatWrapping;
+        road.wrapT = THREE.RepeatWrapping;
+        road.repeat.x = 10;
+        road.repeat.y = 10;
+        let building = new THREE.TextureLoader().load("./building.png")
+        building.wrapS = THREE.RepeatWrapping;
+        building.wrapT = THREE.RepeatWrapping;
+        building.repeat.x = 5;
+        building.repeat.y = 50;
         let box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
         box.position.x=-50;
         box.position.y=-200;
-        box.position.z=50;
+        box.position.z=0;
         scene.add(box);
         box = new THREE.BoxGeometry(10000,1,10000);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x8f8f8f}));
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x8f8f8f, map: road}));
         box.position.y=-400;
         scene.add(box);
         box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
         box.position.x=-50;
         box.position.y=-200;
         box.position.z=500;
         scene.add(box);
         box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
         box.position.x=100;
         box.position.y=-200;
         box.position.z=450;
         scene.add(box);
         box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x0000ff}));
-        box.position.x=150;
+        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
+        box.position.x=200;
         box.position.y=-200;
         box.position.z=300;
         scene.add(box);
@@ -89,10 +99,10 @@ class Player{
         this.mov = new v3(0,0,0);
         this.dir = new v2(0,0);
         this.group = new THREE.Group();
-        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color : 0x00ff00}));
+        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("test.png")}));
         this.group.add(this.mesh);
         scene.add(this.group);
-        this.geom = Polyhedron.make1x1cube();
+        this.geom = Polyhedron.make2x3cube();
         this.mesh.add(camera);
         this.rotation = Matrix3.identity();
     }
@@ -105,13 +115,15 @@ class Player{
         if(kbrd.getKey(32)){
             console.log();
         }
+        this.mov = this.mov.scale(0.8);
         let movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
-        movV.scale(0.3);
+        movV.scale(1);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
         movV = new v3(movV.x,0,movV.y);
         movV = movV.multiply(this.rotation);
-        this.pos = v3.sum(this.pos,movV);
-        this.pos = v3.sum(this.pos,this.gravity.scale(0.1));
+        this.mov = v3.sum(this.mov,this.gravity.scale(0.2));
+        this.mov = v3.sum(this.mov,movV);
+        this.pos = v3.sum(this.mov,this.pos);
         this.calculatePosition();
     }
     calculateCollision(){
@@ -122,6 +134,7 @@ class Player{
                 this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
                 collisionAxes.push(inter.axis);
                 this.calculatePosition();
+                this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
             }
         });
         if(collisionAxes.length){
@@ -167,26 +180,27 @@ class Player{
 }
 class Track{
     constructor(){
-        let arr = Track.makeSpiral(50,20,40,3,50);
+        let arr = Track.makeSpiral(50,50,80,3,50);
         arr.unshift(new v3(-10,-10,-10));
         arr.unshift(new v3(-10,-10,35));
-
-        arr = Track.fromArray(arr);
-        for(let i = 0; i < arr.length; i+=9){
-            collisionPolys.push(Polygon.fromArray(arr.slice(i,i+9)));
+        this.generateFromArray(arr);
+        for(let i = 0; i < this.pos.length; i+=9){
+            collisionPolys.push(Polygon.fromArray(this.pos.slice(i,i+9)));
         }
         this.mesh = new THREE.BufferGeometry();
-        this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(arr),3));
+        this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.pos),3));
+        this.mesh.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(this.uvs),2));
         this.mesh.computeVertexNormals();   
-        let material =  new THREE.MeshLambertMaterial({color : 0xff0000});
+        let material =  new THREE.MeshLambertMaterial({color : 0xffffff, map: road});
         this.mesh = new THREE.Mesh( this.mesh, material);
         scene.add(this.mesh);
     }
-    static fromArray(points){
-        /*organised like    3   5
+    generateFromArray(points){
+        /*organised like    4   5 
                             2   3
                             0   1*/
         let list = [];
+        let uvs = [];
         for(let i =0; i < (points.length)-2; i+=2){
             list.push(points[i].x);
             list.push(points[i].y);
@@ -197,6 +211,12 @@ class Track{
             list.push(points[i+1].x);
             list.push(points[i+1].y);
             list.push(points[i+1].z);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
 
             list.push(points[i+2].x);
             list.push(points[i+2].y);
@@ -207,8 +227,15 @@ class Track{
             list.push(points[i+1].x);
             list.push(points[i+1].y);
             list.push(points[i+1].z);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
         }
-        return list;
+        this.uvs = uvs;
+        this.pos = list;
     }
     static makeSpiral(length, radius, width, sprial, resolution){//length: start to end  radius: center to edge  width: width of the track  spiral: number of rotations  resolution: rumber of segments per rotation
         let points = [];
@@ -238,4 +265,5 @@ var camCont;
 var mouseLocked;
 var PI2 = Math.PI/2;
 var PI = Math.PI;
+var road = new THREE.TextureLoader().load("./road.png");
 init();

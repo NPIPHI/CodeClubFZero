@@ -334,15 +334,15 @@ class Polyhedron{
         }
         return new Polyhedron(polys);
     }
-    static make1x1cube(){
-        let p1 = new v3(-0.5,-0.5,-0.5);
-        let p2 = new v3(0.5,-0.5,-0.5);
-        let p3 = new v3(0.5,-0.5,0.5);
-        let p4 = new v3(-0.5,-0.5,0.5);
-        let p5 = new v3(-0.5,0.5,-0.5);
-        let p6 = new v3(0.5,0.5,-0.5);
-        let p7 = new v3(0.5,0.5,0.5);
-        let p8 = new v3(-0.5,0.5,0.5);
+    static make2x3cube(){
+        let p1 = new v3(-1,-0.5,-1.5);
+        let p2 = new v3(1,-0.5,-1.5);
+        let p3 = new v3(1,-0.5,1.5);
+        let p4 = new v3(-1,-0.5,1.5);
+        let p5 = new v3(-1,0.5,-1.5);
+        let p6 = new v3(1,0.5,-1.5);
+        let p7 = new v3(1,0.5,1.5);
+        let p8 = new v3(-1,0.5,1.5);
         return new Polyhedron([new Polygon(p1,p2,p3), new Polygon(p1,p3,p4), new Polygon(p1,p5,p6), new Polygon(p1,p6,p2), new Polygon(p2,p6,p7), new Polygon(p2,p7,p3),
                             new Polygon(p3,p7,p8), new Polygon(p3,p8,p4), new Polygon(p4,p8,p5), new Polygon(p4,p5,p1), new Polygon(p5,p8,p7), new Polygon(p5,p7,p6)]);
     }
