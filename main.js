@@ -127,13 +127,14 @@ class Player{
         this.calculatePosition();
     }
     calculateCollision(){
-        let collisionAxes = []
+        let collisionAxes = [];
+        let bufGeom = this.geom.generateMovmentPoly(this.mov.scale(-1));
         collisionPolys.forEach(poly =>{
-            let inter = this.geom.intersectsPolygon(poly);
+            let inter = bufGeom.intersectsPolygon(poly);
             if(inter.intersect){
                 this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
                 collisionAxes.push(inter.axis);
-                this.calculatePosition();
+                bufGeom.translate(inter.axis.scale(inter.overlap));
                 this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
             }
         });

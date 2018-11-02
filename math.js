@@ -221,6 +221,9 @@ class Polygon{
     static fromArray(points){
         return new Polygon(new v3(points[0],points[1],points[2]), new v3(points[3],points[4],points[5]),new v3(points[6],points[7],points[8]));
     }
+    clone(){//returns a clone with the current position of the points (rotation already applied)
+        return new Polygon(this.verts[0],this.verts[1],this.verts[2]);
+    }
 }
 class Polyhedron{
     constructor(faces){
@@ -302,8 +305,57 @@ class Polyhedron{
             return {intersect : false}
         }
     }
-    intersectsPolyhedron(polyhedron){
-        
+    generateMovmentPoly(vect){//vect is added to the poly., so a cube at 0,0,0 with the vect = 1,0,0 would be the stretched poly between 0,0,0, and 1,0,0,
+        let foerward = [];
+        let backward = [];
+        this.faces.forEach(f => {
+            if(f.normal.dot(vect)>0){
+                foerward.push(f.clone());
+            } else {
+                backward.push(f.clone());
+            }
+        });
+        let sides = []
+        backward.forEach(b1 => {
+            let connected = false;
+            backward.forEach(b2 => {
+                if(!(b2==b1)&&!connected){
+                    connected = ((b1.verts[0].equals(b2.verts[1])&&b1.verts[1].equals(b2.verts[0]))||(b1.verts[0].equals(b2.verts[2])&&b1.verts[1].equals(b2.verts[1]))||(b1.verts[0].equals(b2.verts[0])&&b1.verts[1].equals(b2.verts[2])));
+                }
+            });
+            if(!connected){
+                sides.push([b1.verts[0],b1.verts[1]]);
+            }
+            connected = false;
+            backward.forEach(b2 => {
+                if(!(b2==b1)&&!connected){
+                    connected = ((b1.verts[1].equals(b2.verts[1])&&b1.verts[2].equals(b2.verts[0]))||(b1.verts[1].equals(b2.verts[2])&&b1.verts[2].equals(b2.verts[1]))||(b1.verts[1].equals(b2.verts[0])&&b1.verts[2].equals(b2.verts[2])));
+                }
+            });
+            if(!connected){
+                sides.push([b1.verts[1],b1.verts[2]]);
+            }
+            connected = false;
+            backward.forEach(b2 => {
+                if(!(b2==b1)&&!connected){
+                    connected = ((b1.verts[2].equals(b2.verts[1])&&b1.verts[0].equals(b2.verts[0]))||(b1.verts[2].equals(b2.verts[2])&&b1.verts[0].equals(b2.verts[1]))||(b1.verts[2].equals(b2.verts[0])&&b1.verts[0].equals(b2.verts[2])));
+                }1
+            });
+            if(!connected){
+                sides.push([b1.verts[2],b1.verts[0]]);
+            }
+        });
+        let polygons = [];
+        sides.forEach(s => {
+            polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
+        });
+        foerward.forEach(f => {
+            polygons.push(f);
+        });
+        backward.forEach(b => {
+            polygons.push(b);
+        });
+        return new Polyhedron(polygons);
     }
     getMinMaxOnAxis(axis){
         let outliers = this.faces[0].getMinMaxOnAxis(axis);
