@@ -138,7 +138,7 @@ class Player{
                 collisionAxes.push(inter.axis);
                 bufGeom.translate(inter.axis.scale(inter.overlap));
                 this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
-                //bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+                //bufGeom = this.geom.3generateMovmentPoly(v3.dif(this.prevpos, this.pos));
             }
         });
         wall.forEach(poly=>{
@@ -228,9 +228,9 @@ class Track{
     generateWallFromArray(points){
         let waL = [];
         let waR = [];
-        let bufNorm;
+        let bufNorm = v3.cross(v3.dif(points[0],points[2]),v3.dif(points[1],points[0])).normalise().scale(-5);
         for(let i = 0; i < points.length-2; i+=2){
-            bufNorm = v3.cross(v3.dif(points[i],points[i+2]),v3.dif(points[i+1],points[i])).normalise().scale(-5);
+            bufNorm = v3.sum(bufNorm,v3.cross(v3.dif(points[i],points[i+2]),v3.dif(points[i+1],points[i])).normalise().scale(-5)).scale(1/2);
             waR.push(points[i+1]);
             waR.push(v3.sum(points[i+1],bufNorm));
             waL.push(v3.sum(points[i],bufNorm));
