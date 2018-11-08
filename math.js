@@ -80,6 +80,9 @@ class v3{//3D vector. pertend that it is immutable
         return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
     }
     static cross(v1,v2){
+        if(v1.equals(v2)||v1.equals(v2.scale(-1))){
+            throw "cross product of parralell vectors";
+        }
         return new v3(v1.y*v2.z-v1.z*v2.y, v1.z*v2.x-v1.x*v2.z, v1.x*v2.y-v1.y*v2.x);
     }
     static sum(v1,v2){//sum of two vectors
@@ -347,6 +350,9 @@ class Polyhedron{
         });
         let polygons = [];
         sides.forEach(s => {
+            if(!(s[0].equals(s[0])&&s[1].equals(s[1]))){
+                throw "bad points";
+            }
             polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
         });
         foerward.forEach(f => {

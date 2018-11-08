@@ -96,6 +96,7 @@ class Player{
         this.gravity = new v3(0,-1,0)
         this.surfaceNormal = new v3(0,1,0);
         this.pos = new v3(0,0,0);
+        this.prevpos = new v3(0,0,0);//previous position used for calculation sub frame collisions
         this.mov = new v3(0,0,0);
         this.dir = new v2(0,0);
         this.group = new THREE.Group();
@@ -117,25 +118,36 @@ class Player{
         }
         this.mov = this.mov.scale(0.8);
         let movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
-        movV.scale(1);
+        movV.scale(0.3);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
         movV = new v3(movV.x,0,movV.y);
         movV = movV.multiply(this.rotation);
         this.mov = v3.sum(this.mov,this.gravity.scale(0.2));
         this.mov = v3.sum(this.mov,movV);
+        this.prevpos = this.pos;
         this.pos = v3.sum(this.mov,this.pos);
         this.calculatePosition();
     }
     calculateCollision(){
         let collisionAxes = [];
-        let bufGeom = this.geom.generateMovmentPoly(this.mov.scale(-1));
-        collisionPolys.forEach(poly =>{
+        let bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+        floor.forEach(poly =>{
             let inter = bufGeom.intersectsPolygon(poly);
             if(inter.intersect){
                 this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
                 collisionAxes.push(inter.axis);
                 bufGeom.translate(inter.axis.scale(inter.overlap));
                 this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
+                //bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+            }
+        });
+        wall.forEach(poly=>{
+            let inter = bufGeom.intersectsPolygon(poly);
+            if(inter.intersect){
+                this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
+                bufGeom.translate(inter.axis.scale(inter.overlap));
+                this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
+                //bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
             }
         });
         if(collisionAxes.length){
@@ -182,11 +194,18 @@ class Player{
 class Track{
     constructor(){
         let arr = Track.makeSpiral(50,50,80,3,50);
-        arr.unshift(new v3(-10,-10,-10));
-        arr.unshift(new v3(-10,-10,35));
+        arr.unshift(new v3(-100,-10,-100));
+        arr.unshift(new v3(-100,-10,35));
         this.generateFromArray(arr);
+        this.generateWallFromArray(arr);
         for(let i = 0; i < this.pos.length; i+=9){
-            collisionPolys.push(Polygon.fromArray(this.pos.slice(i,i+9)));
+            floor.push(Polygon.fromArray(this.pos.slice(i,i+9)));
+        }
+        for(let i = 0; i < this.waRPos.length; i+=9){
+            wall.push(Polygon.fromArray(this.waRPos.slice(i,i+9)));
+        }
+        for(let i = 0; i < this.waLPos.length; i+=9){
+            wall.push(Polygon.fromArray(this.waLPos.slice(i,i+9)));
         }
         this.mesh = new THREE.BufferGeometry();
         this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.pos),3));
@@ -195,9 +214,109 @@ class Track{
         let material =  new THREE.MeshLambertMaterial({color : 0xffffff, map: road});
         this.mesh = new THREE.Mesh( this.mesh, material);
         scene.add(this.mesh);
+        this.wallR = new THREE.BufferGeometry();
+        this.wallR.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.waRPos),3));
+        this.wallR.computeVertexNormals();
+        this.wallR = new THREE.Mesh( this.wallR, new THREE.MeshLambertMaterial({color: 0x00ffff}));
+        scene.add(this.wallR);
+        this.wallL = new THREE.BufferGeometry();
+        this.wallL.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.waLPos),3));
+        this.wallL.computeVertexNormals();
+        this.wallL = new THREE.Mesh( this.wallL, new THREE.MeshLambertMaterial({color: 0x00ffff}));
+        scene.add(this.wallL);
+    }
+    generateWallFromArray(points){
+        let waL = [];
+        let waR = [];
+        let bufNorm;
+        for(let i = 0; i < points.length-2; i+=2){
+            bufNorm = v3.cross(v3.dif(points[i],points[i+2]),v3.dif(points[i+1],points[i])).normalise().scale(-5);
+            waR.push(points[i+1]);
+            waR.push(v3.sum(points[i+1],bufNorm));
+            waL.push(v3.sum(points[i],bufNorm));
+            waL.push(points[i]);
+        }
+        waR.push(points[points.length-1]);
+        waR.push(v3.sum(points[points.length-1],bufNorm));
+        waL.push(v3.sum(points[points.length-2],bufNorm));
+        waL.push(points[points.length-2]);
+        let list = [];
+        let uvs = [];
+        for(let i = 0; i < waR.length-2; i+=2){
+            list.push(waR[i].x);
+            list.push(waR[i].y);
+            list.push(waR[i].z);
+            list.push(waR[i+2].x);
+            list.push(waR[i+2].y);
+            list.push(waR[i+2].z);
+            list.push(waR[i+1].x);
+            list.push(waR[i+1].y);
+            list.push(waR[i+1].z);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
+
+            list.push(waR[i+2].x);
+            list.push(waR[i+2].y);
+            list.push(waR[i+2].z);
+            list.push(waR[i+3].x);
+            list.push(waR[i+3].y);
+            list.push(waR[i+3].z);
+            list.push(waR[i+1].x);
+            list.push(waR[i+1].y);
+            list.push(waR[i+1].z);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
+        }
+        this.waRPos = list;
+        this.waRuvs = uvs;
+        list = [];
+        uvs = [];
+        for(let i = 0; i < waL.length-2; i+=2){
+            list.push(waL[i].x);
+            list.push(waL[i].y);
+            list.push(waL[i].z);
+            list.push(waL[i+2].x);
+            list.push(waL[i+2].y);
+            list.push(waL[i+2].z);
+            list.push(waL[i+1].x);
+            list.push(waL[i+1].y);
+            list.push(waL[i+1].z);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
+
+            list.push(waL[i+2].x);
+            list.push(waL[i+2].y);
+            list.push(waL[i+2].z);
+            list.push(waL[i+3].x);
+            list.push(waL[i+3].y);
+            list.push(waL[i+3].z);
+            list.push(waL[i+1].x);
+            list.push(waL[i+1].y);
+            list.push(waL[i+1].z);
+            uvs.push(0);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(1);
+            uvs.push(0);
+        }
+        this.waLPos = list;
+        this.waLuvs = uvs;
     }
     generateFromArray(points){
-        /*organised like    4   5 
+        /*organised like    4   5  
                             2   3
                             0   1*/
         let list = [];
@@ -256,7 +375,8 @@ var trackPts = new Float32Array([-10,0,-10, -10,0,10, 10,0,10,
                                  15,5,-15, -15,15,-15,-15,5,-15,
                                  15,15,-15,-15,15,-15, 15,5,-15,
                                  -15,15,-15, 15,15,-15, 0,20,0]);
-var collisionPolys = [];
+var floor = [];
+var wall = [];
 var p1;
 var camera;
 var cube;
