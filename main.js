@@ -4,6 +4,12 @@ window.onclick=function(){
     renderer.domElement.requestPointerLock()
     mouseLocked = true;
 };
+window.addEventListener("gamepadconnected", function(e) {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      e.gamepad.index, e.gamepad.id,
+      e.gamepad.buttons.length, e.gamepad.axes.length);
+      gamePad = e.gamepad;
+  });
 window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -93,6 +99,7 @@ class CameraControl{
 }
 class Player{
     constructor(){
+        this.acceleration = 0.1;
         this.gravity = new v3(0,-1,0)
         this.surfaceNormal = new v3(0,1,0);
         this.pos = new v3(0,0,0);
@@ -115,12 +122,14 @@ class Player{
         this.calculateCamera();
     }
     calculateMovment(){
-        if(kbrd.getKey(32)){
-            console.log();
-        }
         this.mov = this.mov.scale(0.9);
-        let movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
-        movV.scale(0.3);
+        let movV;
+        if(gamePad){
+            movV = new v2((Math.abs(gamePad.axes[0])>0.1)?gamePad.axes[0]:0,((gamePad.buttons[6].pressed)?1:0)+((gamePad.buttons[7].pressed)?-1:0));
+        } else {
+            movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
+        }
+        movV.scale(this.acceleration);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
         movV = new v3(movV.x,0,movV.y);
         movV = movV.multiply(this.rotation);
@@ -187,6 +196,16 @@ class Player{
                 this.dir.x+=Math.PI*2;
             }
         }
+        if(gamePad){
+            this.dir.x-=(Math.abs(gamePad.axes[2])>0.1)?gamePad.axes[2]/10:0;
+            this.dir.y-=(Math.abs(gamePad.axes[3])>0.1)?gamePad.axes[3]/10:0;
+            while(this.dir.x>Math.PI*2){
+                this.dir.x-=Math.PI*2;
+            }
+            while(this.dir.x<0){
+                this.dir.x+=Math.PI*2;
+            }
+        }
         this.subGroup.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.subGroup.matrix.elements[3],
                                         this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.subGroup.matrix.elements[7],
                                         this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.subGroup.matrix.elements[11],
@@ -201,7 +220,7 @@ class Player{
 }
 class Track{
     constructor(){
-        let arr = Track.makeOval(new v3(70,-10,0), 100,70,50,100,1);
+        let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
         this.generateFromArray(arr);
         this.generateWallFromArray(arr);
         for(let i = 0; i < this.pos.length; i+=9){
@@ -381,11 +400,11 @@ class Track{
         }
         return points;
     }
-    static makeOval(center, length, width, bank, resolution, trackWidth){
+    static makeOval(center, length, width, bankAngle, resolution, trackWidth){
         let points = [];
         for(let i = 0; i <= resolution; i++){
             points.push(v3.sum(new v3(Math.cos(i*Math.PI*2/resolution)*width, 0, Math.sin(i*Math.PI*2/resolution)*length), center));
-            points.push(v3.sum(new v3(Math.cos(i*Math.PI*2/resolution)*width*(1+trackWidth), bank, Math.sin(i*Math.PI*2/resolution)*length*(1+trackWidth)), center));
+            points.push(v3.sum(new v3(Math.cos(i*Math.PI*2/resolution)*width*(1+Math.cos(bankAngle)*trackWidth), Math.sin(bankAngle)*trackWidth*100, Math.sin(i*Math.PI*2/resolution)*length*(1+Math.cos(bankAngle)*trackWidth)), center));
         }
         return points;
     }
@@ -411,4 +430,5 @@ var mouseLocked;
 var PI2 = Math.PI/2;
 var PI = Math.PI;
 var road = new THREE.TextureLoader().load("./road.png");
+var gamePad;
 init();
