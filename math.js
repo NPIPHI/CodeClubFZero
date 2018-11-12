@@ -36,7 +36,6 @@ class v3{//3D vector. pertend that it is immutable
             throw "NaN exception";
         }
         this.x = x;
-        this.x = x;
         this.y = y;
         this.z = z;
     }

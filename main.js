@@ -201,9 +201,7 @@ class Player{
 }
 class Track{
     constructor(){
-        let arr = Track.makeSpiral(50,50,80,3,50);
-        arr.unshift(new v3(-100,-10,-100));
-        arr.unshift(new v3(-100,-10,35));
+        let arr = Track.makeOval(new v3(70,-10,0), 100,70,50,100,1);
         this.generateFromArray(arr);
         this.generateWallFromArray(arr);
         for(let i = 0; i < this.pos.length; i+=9){
@@ -237,8 +235,12 @@ class Track{
         scene.add(this.wallL);
     }
     generateWallFromArray(points){
-        let waL = [];
+        this.waRPos = [];
+        this.waRuvs = [];
+        this.waLPos = [];
+        this.waLuvs = [];
         let waR = [];
+        let waL = [];
         let bufNorm = v3.cross(v3.dif(points[0],points[2]),v3.dif(points[1],points[0])).normalise().scale(-5);
         for(let i = 0; i < points.length-2; i+=2){
             bufNorm = v3.sum(bufNorm,v3.cross(v3.dif(points[i],points[i+2]),v3.dif(points[i+1],points[i])).normalise().scale(-5)).scale(1/2);
@@ -251,8 +253,6 @@ class Track{
         waR.push(v3.sum(points[points.length-1],bufNorm));
         waL.push(v3.sum(points[points.length-2],bufNorm));
         waL.push(points[points.length-2]);
-        let list = [];
-        let uvs = [];
         let textWidth = 1; // how wide the texture should be
         let curDist = 0; //how far along the textuer is
         let polyDist = 0; //how wide the polygon is
@@ -264,78 +264,72 @@ class Track{
                     curDist-=textWidth;
                 }
                 
-                list.push(waR[i].x);
-                list.push(waR[i].y);
-                list.push(waR[i].z);
-                list.push(waR[i+2].x);
-                list.push(waR[i+2].y);
-                list.push(waR[i+2].z);
-                list.push(waR[i+1].x);
-                list.push(waR[i+1].y);
-                list.push(waR[i+1].z);
-                uvs.push(0);
-                uvs.push(0);
-                uvs.push(0);
-                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
-                uvs.push(1);
-                uvs.push(0);
+                this.waRPos.push(waR[i].x);
+                this.waRPos.push(waR[i].y);
+                this.waRPos.push(waR[i].z);
+                this.waRPos.push(waR[i+2].x);
+                this.waRPos.push(waR[i+2].y);
+                this.waRPos.push(waR[i+2].z);
+                this.waRPos.push(waR[i+1].x);
+                this.waRPos.push(waR[i+1].y);
+                this.waRPos.push(waR[i+1].z);
+                this.waRuvs.push(0);
+                this.waRuvs.push(0);
+                this.waRuvs.push(0);
+                this.waRuvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                this.waRuvs.push(1);
+                this.waRuvs.push(0);
 
-                list.push(waR[i+2].x);
-                list.push(waR[i+2].y);
-                list.push(waR[i+2].z);
-                list.push(waR[i+3].x);
-                list.push(waR[i+3].y);
-                list.push(waR[i+3].z);
-                list.push(waR[i+1].x);
-                list.push(waR[i+1].y);
-                list.push(waR[i+1].z);
-                uvs.push(0);
-                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
-                uvs.push(1);
-                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
-                uvs.push(1);
-                uvs.push(0);
+                this.waRPos.push(waR[i+2].x);
+                this.waRPos.push(waR[i+2].y);
+                this.waRPos.push(waR[i+2].z);
+                this.waRPos.push(waR[i+3].x);
+                this.waRPos.push(waR[i+3].y);
+                this.waRPos.push(waR[i+3].z);
+                this.waRPos.push(waR[i+1].x);
+                this.waRPos.push(waR[i+1].y);
+                this.waRPos.push(waR[i+1].z);
+                this.waRuvs.push(0);
+                this.waRuvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                this.waRuvs.push(1);
+                this.waRuvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                this.waRuvs.push(1);
+                this.waRuvs.push(0);
             } while(curDist>textWidth);
         }
-        this.waRPos = list;
-        this.waRuvs = uvs;
-        list = [];
-        uvs = [];
         for(let i = 0; i < waL.length-2; i+=2){
-            list.push(waL[i].x);
-            list.push(waL[i].y);
-            list.push(waL[i].z);
-            list.push(waL[i+2].x);
-            list.push(waL[i+2].y);
-            list.push(waL[i+2].z);
-            list.push(waL[i+1].x);
-            list.push(waL[i+1].y);
-            list.push(waL[i+1].z);
-            uvs.push(1);
-            uvs.push(0);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(0);
-            uvs.push(0);
+            this.waLPos.push(waL[i].x);
+            this.waLPos.push(waL[i].y);
+            this.waLPos.push(waL[i].z);
+            this.waLPos.push(waL[i+2].x);
+            this.waLPos.push(waL[i+2].y);
+            this.waLPos.push(waL[i+2].z);
+            this.waLPos.push(waL[i+1].x);
+            this.waLPos.push(waL[i+1].y);
+            this.waLPos.push(waL[i+1].z);
+            this.waLuvs.push(1);
+            this.waLuvs.push(0);
+            this.waLuvs.push(1);
+            this.waLuvs.push(1);
+            this.waLuvs.push(0);
+            this.waLuvs.push(0);
 
-            list.push(waL[i+2].x);
-            list.push(waL[i+2].y);
-            list.push(waL[i+2].z);
-            list.push(waL[i+3].x);
-            list.push(waL[i+3].y);
-            list.push(waL[i+3].z);
-            list.push(waL[i+1].x);
-            list.push(waL[i+1].y);
-            list.push(waL[i+1].z);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(0);
-            uvs.push(1);
-            uvs.push(0);
-            uvs.push(0);
+            this.waLPos.push(waL[i+2].x);
+            this.waLPos.push(waL[i+2].y);
+            this.waLPos.push(waL[i+2].z);
+            this.waLPos.push(waL[i+3].x);
+            this.waLPos.push(waL[i+3].y);
+            this.waLPos.push(waL[i+3].z);
+            this.waLPos.push(waL[i+1].x);
+            this.waLPos.push(waL[i+1].y);
+            this.waLPos.push(waL[i+1].z);
+            this.waLuvs.push(1);
+            this.waLuvs.push(1);
+            this.waLuvs.push(0);
+            this.waLuvs.push(1);
+            this.waLuvs.push(0);
+            this.waLuvs.push(0);
         }
-        this.waLPos = list;
-        this.waLuvs = uvs;
     }
     generateFromArray(points){
         /*organised like    4   5  
@@ -384,6 +378,14 @@ class Track{
         for(let i = 0; i <= resolution*sprial; i++){
             points.push(new v3(Math.cos(i*Math.PI*2/resolution)*radius,Math.sin(i*Math.PI*2/resolution)*radius,width+length*i/resolution*sprial));
             points.push(new v3(Math.cos(i*Math.PI*2/resolution)*radius,Math.sin(i*Math.PI*2/resolution)*radius,length*i/resolution*sprial));
+        }
+        return points;
+    }
+    static makeOval(center, length, width, bank, resolution, trackWidth){
+        let points = [];
+        for(let i = 0; i <= resolution; i++){
+            points.push(v3.sum(new v3(Math.cos(i*Math.PI*2/resolution)*width, 0, Math.sin(i*Math.PI*2/resolution)*length), center));
+            points.push(v3.sum(new v3(Math.cos(i*Math.PI*2/resolution)*width*(1+trackWidth), bank, Math.sin(i*Math.PI*2/resolution)*length*(1+trackWidth)), center));
         }
         return points;
     }
