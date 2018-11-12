@@ -31,7 +31,7 @@ function init(){
         building.repeat.y = 50;
         let box = new THREE.BoxGeometry(50,500,50);
         box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
-        box.position.x=-50;
+        box.position.x=-150;
         box.position.y=-200;
         box.position.z=0;
         scene.add(box);
@@ -100,11 +100,13 @@ class Player{
         this.mov = new v3(0,0,0);
         this.dir = new v2(0,0);
         this.group = new THREE.Group();
+        this.subGroup = new THREE.Group();
         this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("test.png")}));
-        this.group.add(this.mesh);
+        this.group.add(this.subGroup);
+        this.subGroup.add(this.mesh);
         scene.add(this.group);
         this.geom = Polyhedron.make2x3cube();
-        this.mesh.add(camera);
+        this.subGroup.add(camera);
         this.rotation = Matrix3.identity();
     }
     update(){
@@ -116,7 +118,7 @@ class Player{
         if(kbrd.getKey(32)){
             console.log();
         }
-        this.mov = this.mov.scale(0.8);
+        this.mov = this.mov.scale(0.9);
         let movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
         movV.scale(0.3);
         movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
@@ -134,20 +136,24 @@ class Player{
         floor.forEach(poly =>{
             let inter = bufGeom.intersectsPolygon(poly);
             if(inter.intersect){
-                this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
-                collisionAxes.push(inter.axis);
-                bufGeom.translate(inter.axis.scale(inter.overlap));
-                this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
-                //bufGeom = this.geom.3generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+                if(inter.axis.dot(this.mov)<=0.01){
+                    this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
+                    collisionAxes.push(inter.axis);
+                    bufGeom.translate(inter.axis.scale(inter.overlap));
+                    this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
+                    //bufGeom = this.geom.3generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+                }
             }
         });
         wall.forEach(poly=>{
             let inter = bufGeom.intersectsPolygon(poly);
             if(inter.intersect){
-                this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
-                bufGeom.translate(inter.axis.scale(inter.overlap));
-                this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
-                //bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+                if(inter.axis.dot(this.mov)<=0.01){
+                    this.pos = v3.sum(this.pos, inter.axis.scale(inter.overlap));
+                    bufGeom.translate(inter.axis.scale(inter.overlap));
+                    this.mov = v3.sum(this.mov, inter.axis.scale(this.mov.dot(inter.axis)*-1));
+                    //bufGeom = this.geom.generateMovmentPoly(v3.dif(this.prevpos, this.pos));
+                }
             }
         });
         if(collisionAxes.length){
@@ -162,7 +168,7 @@ class Player{
         }
         this.gravity = this.surfaceNormal.scale(-1);
         this.calculatePosition();
-        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0),this.surfaceNormal);
+        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
@@ -180,13 +186,15 @@ class Player{
             while(this.dir.x<0){
                 this.dir.x+=Math.PI*2;
             }
-            this.mesh.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.mesh.matrix.elements[3],
-                                        this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.mesh.matrix.elements[7],
-                                        this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.mesh.matrix.elements[11],
-                                        this.mesh.matrix.elements[12], this.mesh.matrix.elements[13], this.mesh.matrix.elements[14], this.mesh.matrix.elements[15]];
-            this.mesh.matrixWorldNeedsUpdate = true;
-            this.mesh.matrixAutoUpdate = false;
         }
+        this.subGroup.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.subGroup.matrix.elements[3],
+                                        this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.subGroup.matrix.elements[7],
+                                        this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.subGroup.matrix.elements[11],
+                                        this.subGroup.matrix.elements[12], this.subGroup.matrix.elements[13], this.subGroup.matrix.elements[14], this.subGroup.matrix.elements[15]];
+        //this.mesh.rotateX(this.dir.x);
+        this.subGroup.matrixWorldNeedsUpdate = true;
+        this.subGroup.matrixAutoUpdate = false;
+        this.mesh.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.dir.x);
         camCont.setPosition(new v3(Math.sin(this.dir.x)*10*Math.cos(this.dir.y),Math.sin(this.dir.y)*-10+1,Math.cos(this.dir.x)*10*Math.cos(this.dir.y)));
         camCont.setDirection(this.dir);
     }
@@ -207,6 +215,7 @@ class Track{
         for(let i = 0; i < this.waLPos.length; i+=9){
             wall.push(Polygon.fromArray(this.waLPos.slice(i,i+9)));
         }
+        let fence = new THREE.TextureLoader().load("./fence.png");
         this.mesh = new THREE.BufferGeometry();
         this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.pos),3));
         this.mesh.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(this.uvs),2));
@@ -216,13 +225,15 @@ class Track{
         scene.add(this.mesh);
         this.wallR = new THREE.BufferGeometry();
         this.wallR.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.waRPos),3));
+        this.wallR.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(this.waRuvs),2));
         this.wallR.computeVertexNormals();
-        this.wallR = new THREE.Mesh( this.wallR, new THREE.MeshLambertMaterial({color: 0x00ffff}));
+        this.wallR = new THREE.Mesh( this.wallR, new THREE.MeshLambertMaterial({color: 0xffffff, map: fence, transparent: true}));
         scene.add(this.wallR);
         this.wallL = new THREE.BufferGeometry();
         this.wallL.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.waLPos),3));
+        this.wallL.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(this.waLuvs),2));
         this.wallL.computeVertexNormals();
-        this.wallL = new THREE.Mesh( this.wallL, new THREE.MeshLambertMaterial({color: 0x00ffff}));
+        this.wallL = new THREE.Mesh( this.wallL, new THREE.MeshLambertMaterial({color: 0xffffff, map: fence, transparent: true}));
         scene.add(this.wallL);
     }
     generateWallFromArray(points){
@@ -242,38 +253,49 @@ class Track{
         waL.push(points[points.length-2]);
         let list = [];
         let uvs = [];
+        let textWidth = 1; // how wide the texture should be
+        let curDist = 0; //how far along the textuer is
+        let polyDist = 0; //how wide the polygon is
         for(let i = 0; i < waR.length-2; i+=2){
-            list.push(waR[i].x);
-            list.push(waR[i].y);
-            list.push(waR[i].z);
-            list.push(waR[i+2].x);
-            list.push(waR[i+2].y);
-            list.push(waR[i+2].z);
-            list.push(waR[i+1].x);
-            list.push(waR[i+1].y);
-            list.push(waR[i+1].z);
-            uvs.push(0);
-            uvs.push(0);
-            uvs.push(0);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(0);
+            polyDist = v3.dif(waR[i],waR[i+2]).getMagnitude();
+            curDist+=polyDist;
+            do{  
+                if(curDist>textWidth){
+                    curDist-=textWidth;
+                }
+                
+                list.push(waR[i].x);
+                list.push(waR[i].y);
+                list.push(waR[i].z);
+                list.push(waR[i+2].x);
+                list.push(waR[i+2].y);
+                list.push(waR[i+2].z);
+                list.push(waR[i+1].x);
+                list.push(waR[i+1].y);
+                list.push(waR[i+1].z);
+                uvs.push(0);
+                uvs.push(0);
+                uvs.push(0);
+                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                uvs.push(1);
+                uvs.push(0);
 
-            list.push(waR[i+2].x);
-            list.push(waR[i+2].y);
-            list.push(waR[i+2].z);
-            list.push(waR[i+3].x);
-            list.push(waR[i+3].y);
-            list.push(waR[i+3].z);
-            list.push(waR[i+1].x);
-            list.push(waR[i+1].y);
-            list.push(waR[i+1].z);
-            uvs.push(0);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(0);
+                list.push(waR[i+2].x);
+                list.push(waR[i+2].y);
+                list.push(waR[i+2].z);
+                list.push(waR[i+3].x);
+                list.push(waR[i+3].y);
+                list.push(waR[i+3].z);
+                list.push(waR[i+1].x);
+                list.push(waR[i+1].y);
+                list.push(waR[i+1].z);
+                uvs.push(0);
+                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                uvs.push(1);
+                uvs.push(Math.min(polyDist+curDist,textWidth)/textWidth);
+                uvs.push(1);
+                uvs.push(0);
+            } while(curDist>textWidth);
         }
         this.waRPos = list;
         this.waRuvs = uvs;
@@ -289,11 +311,11 @@ class Track{
             list.push(waL[i+1].x);
             list.push(waL[i+1].y);
             list.push(waL[i+1].z);
-            uvs.push(0);
-            uvs.push(0);
+            uvs.push(1);
             uvs.push(0);
             uvs.push(1);
             uvs.push(1);
+            uvs.push(0);
             uvs.push(0);
 
             list.push(waL[i+2].x);
@@ -305,11 +327,11 @@ class Track{
             list.push(waL[i+1].x);
             list.push(waL[i+1].y);
             list.push(waL[i+1].z);
+            uvs.push(1);
+            uvs.push(1);
             uvs.push(0);
             uvs.push(1);
-            uvs.push(1);
-            uvs.push(1);
-            uvs.push(1);
+            uvs.push(0);
             uvs.push(0);
         }
         this.waLPos = list;

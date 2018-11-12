@@ -32,7 +32,7 @@ class v2{// 2D vector. pertend that it is immutable
 }
 class v3{//3D vector. pertend that it is immutable
     constructor(x,y,z){
-        if(isNaN(x)){
+        if(isNaN(x)||isNaN(y)||isNaN(z)){
             throw "NaN exception";
         }
         this.x = x;
@@ -101,6 +101,9 @@ class v3{//3D vector. pertend that it is immutable
         });
         return sum;
     }
+    static weightMean(v1,v2,weight){
+        
+    }
 }
 class Matrix2{
     constructor(values){
@@ -127,6 +130,13 @@ class Matrix3{// pertend it is immutable
     }
     scale(scaleFactor){
         return new Matrix3([this.m[0]*scaleFactor,this.m[1]*scaleFactor,this.m[2]*scaleFactor,this.m[3]*scaleFactor,this.m[4]*scaleFactor,this.m[5]*scaleFactor,this.m[6]*scaleFactor,this.m[7]*scaleFactor,this.m[8]*scaleFactor])
+    }
+    static fromAxisAngle(axis, angle){
+        let cos = Math.cos(angle);
+        let sin = Math.sin(angle);
+        return new Matrix3([cos+axis.x*axis.x*(1-cos), axis.x*axis.y*(1-cos)-axis.z*sin, axis.x*axis.z*(1-cos)+axis.y*sin,
+                            axis.y*axis.x*(1-cos)+axis.z*sin, cos+axis.y*axis.y*(1-cos), axis.y*axis.z*(1-cos)-axis.x*sin,
+                            axis.z*axis.x*(1-cos)-axis.y*sin, axis.x*axis.y*(1-cos)+axis.x*sin, cos+axis.z*axis.z*(1-cos)]);
     }
     static fromTHREEGeom(object3D){
         return new Matrix3([object3D.matrix.elements[0],object3D.matrix.elements[1],object3D.matrix.elements[2],object3D.matrix.elements[4],object3D.matrix.elements[5],object3D.matrix.elements[6],object3D.matrix.elements[8],object3D.matrix.elements[9],object3D.matrix.elements[10]]);
@@ -350,8 +360,8 @@ class Polyhedron{
         });
         let polygons = [];
         sides.forEach(s => {
-            if(!(s[0].equals(s[0])&&s[1].equals(s[1]))){
-                throw "bad points";
+            if(s[0].equals(s[1])||!vect.equals(vect)){
+                throw "bad Points"
             }
             polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
         });
