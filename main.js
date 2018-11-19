@@ -5,11 +5,18 @@ window.onclick=function(){
     mouseLocked = true;
 };
 window.addEventListener("gamepadconnected", function(e) {
-    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-      e.gamepad.index, e.gamepad.id,
-      e.gamepad.buttons.length, e.gamepad.axes.length);
-      gamePad = e.gamepad;
-  });
+    if(e.gamepad.axes.length>=4){
+        console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+        e.gamepad.index, e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+        gamePad = e.gamepad;
+    }
+});
+window.addEventListener("gamepaddisconnected", function(e) {
+    console.log("Gamepad disconnected from index %d: %s",
+    e.gamepad.index, e.gamepad.id);
+    gamePad = undefined;
+});
 window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -69,7 +76,6 @@ function init(){
     light = new THREE.AmbientLight(0x3f3f3f, 1, 100);
     scene.add(light);
     p1 = new Player();
-    camCont = new CameraControl(camera);
     new Track();    
     animate();
     gameLoop();
@@ -83,20 +89,6 @@ function gameLoop(){
     kbrd.resetToggle();
     requestAnimationFrame( gameLoop );
 }
-class CameraControl{
-    constructor(camera){
-        this.camera = camera;
-    }
-    setPosition(v3){
-        camera.position.x = v3.x;
-        camera.position.y = v3.y;
-        camera.position.z = v3.z;
-    }
-    setDirection(rotation){
-        camera.setRotationFromAxisAngle(new THREE.Vector3(0,1,0), rotation.x);
-        camera.rotateX(rotation.y);
-    }
-}
 class Player{
     constructor(){
         this.acceleration = 0.1;
@@ -105,32 +97,50 @@ class Player{
         this.pos = new v3(0,0,0);
         this.prevpos = new v3(0,0,0);//previous position used for calculation sub frame collisions
         this.mov = new v3(0,0,0);
-        this.dir = new v2(0,0);
-        this.group = new THREE.Group();
-        this.subGroup = new THREE.Group();
+        this.cameraOffsetAngle = new v2(0,0);
+        this.groundRotation = 0;
+        this.lateralMov = 0;
+        this.positionGroup = new THREE.Group();
+        this.rotationGroup = new THREE.Group();
+        this.bodyGroup = new THREE.Group();
+        this.animationGroup = new THREE.Group();
+        this.cameraGroup = new THREE.Group();
         this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("test.png")}));
-        this.group.add(this.subGroup);
-        this.subGroup.add(this.mesh);
-        scene.add(this.group);
+        this.cameraGroup.position.z = 10;
+        this.cameraGroup.position.y = 5;
+        this.positionGroup.add(this.rotationGroup);
+        this.rotationGroup.add(this.bodyGroup);
+        this.bodyGroup.add(this.cameraGroup);
+        this.cameraGroup.add(camera);
+        this.bodyGroup.add(this.animationGroup);
+        this.animationGroup.add(this.mesh);
+        scene.add(this.positionGroup);
         this.geom = Polyhedron.make2x3cube();
-        this.subGroup.add(camera);
         this.rotation = Matrix3.identity();
     }
     update(){
         this.calculateMovment();
         this.calculateCollision();
-        this.calculateCamera();
+        this.calculateAnimation();
     }
     calculateMovment(){
         this.mov = this.mov.scale(0.9);
         let movV;
         if(gamePad){
-            movV = new v2((Math.abs(gamePad.axes[0])>0.1)?gamePad.axes[0]:0,((gamePad.buttons[6].pressed)?1:0)+((gamePad.buttons[7].pressed)?-1:0));
+            movV = new v2(0,((gamePad.buttons[6].pressed)?1:0)+((gamePad.buttons[7].pressed)?-1:0));
+            this.groundRotation += (Math.abs(gamePad.axes[0])>0.1)?gamePad.axes[0]:0;
         } else {
-            movV = new v2((kbrd.getKey(65)?-1:0)+(kbrd.getKey(68)?1:0),(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
+            movV = new v2(0,(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
+            this.groundRotation += ((kbrd.getKey(65)?1:0)+(kbrd.getKey(68)?-1:0))/25;
+        }
+        while(this.groundRotation<0){
+            this.groundRotation+=Math.PI*2;
+        }
+        while(this.groundRotation>=Math.PI*2){
+            this.groundRotation-=Math.PI*2;
         }
         movV.scale(this.acceleration);
-        movV = movV.multiply(Matrix2.fromAngle(this.dir.x));
+        movV = movV.multiply(Matrix2.fromAngle(this.groundRotation));
         movV = new v3(movV.x,0,movV.y);
         movV = movV.multiply(this.rotation);
         this.mov = v3.sum(this.mov,this.gravity.scale(0.2));
@@ -182,45 +192,50 @@ class Player{
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
         this.geom.rotateAbsolute(Matrix3.fromTHREEGeom(this.mesh));
-        this.group.position.set(this.pos.x,this.pos.y,this.pos.z);
+        this.positionGroup.position.set(this.pos.x,this.pos.y,this.pos.z);
     }
-    calculateCamera(){  
+    calculateAnimation(){  
         if(mouseLocked){
-            this.dir.x-=kbrd.mouseMov[0]/400;
-            this.dir.y-=kbrd.mouseMov[1]/400;
-            this.dir.y=Math.min(Math.max(this.dir.y,-PI2),PI2);
-            while(this.dir.x>Math.PI*2){
-                this.dir.x-=Math.PI*2;
+            this.cameraOffsetAngle.x-=kbrd.mouseMov[0]/400;
+            this.cameraOffsetAngle.y-=kbrd.mouseMov[1]/400;
+            this.cameraOffsetAngle.y = Math.min(Math.max(this.cameraOffsetAngle.y,-Math.PI/2),Math.PI/2)
+            while(this.cameraOffsetAngle.x>Math.PI*2){
+                this.cameraOffsetAngle.x-=Math.PI*2;
             }
-            while(this.dir.x<0){
-                this.dir.x+=Math.PI*2;
+            while(this.cameraOffsetAngle.x<0){
+                this.cameraOffsetAngle.x+=Math.PI*2;
             }
         }
         if(gamePad){
-            this.dir.x-=(Math.abs(gamePad.axes[2])>0.1)?gamePad.axes[2]/10:0;
-            this.dir.y-=(Math.abs(gamePad.axes[3])>0.1)?gamePad.axes[3]/10:0;
-            while(this.dir.x>Math.PI*2){
-                this.dir.x-=Math.PI*2;
+            this.cameraOffsetAngle.x=-(Math.abs(gamePad.axes[2])>0.1)?gamePad.axes[2]*Math.PI/2:0;
+            this.cameraOffsetAngle.y=(Math.abs(gamePad.axes[3])>0.1)?gamePad.axes[3]*Math.PI/2:0;
+            while(this.cameraOffsetAngle.x>Math.PI*2){
+                this.cameraOffsetAngle.x-=Math.PI*2;
             }
-            while(this.dir.x<0){
-                this.dir.x+=Math.PI*2;
+            while(this.cameraOffsetAngle.x<0){
+                this.cameraOffsetAngle.x+=Math.PI*2;
             }
         }
-        this.subGroup.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.subGroup.matrix.elements[3],
-                                        this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.subGroup.matrix.elements[7],
-                                        this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.subGroup.matrix.elements[11],
-                                        this.subGroup.matrix.elements[12], this.subGroup.matrix.elements[13], this.subGroup.matrix.elements[14], this.subGroup.matrix.elements[15]];
-        //this.mesh.rotateX(this.dir.x);
-        this.subGroup.matrixWorldNeedsUpdate = true;
-        this.subGroup.matrixAutoUpdate = false;
-        this.mesh.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.dir.x);
-        camCont.setPosition(new v3(Math.sin(this.dir.x)*10*Math.cos(this.dir.y),Math.sin(this.dir.y)*-10+1,Math.cos(this.dir.x)*10*Math.cos(this.dir.y)));
-        camCont.setDirection(this.dir);
+        this.rotationGroup.matrix.elements = [this.rotation.m[0],this.rotation.m[1],this.rotation.m[2],this.rotationGroup.matrix.elements[3],
+                                        this.rotation.m[3],this.rotation.m[4],this.rotation.m[5], this.rotationGroup.matrix.elements[7],
+                                        this.rotation.m[6],this.rotation.m[7],this.rotation.m[8], this.rotationGroup.matrix.elements[11],
+                                        this.rotationGroup.matrix.elements[12], this.rotationGroup.matrix.elements[13], this.rotationGroup.matrix.elements[14], this.rotationGroup.matrix.elements[15]];
+        this.rotationGroup.matrixWorldNeedsUpdate = true;
+        this.rotationGroup.matrixAutoUpdate = false;
+        let D2mov = this.mov.multiply(Matrix3.MakeRotationMatrix(p1.surfaceNormal,new v3(0,1,0)));
+        D2mov = new v2(D2mov.x,D2mov.z);
+        let groundRot = new v2(-Math.sin(this.groundRotation),-Math.cos(this.groundRotation));
+        this.lateralMov = (D2mov.cross(groundRot))/3;
+        this.bodyGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.groundRotation);
+        this.animationGroup.setRotationFromAxisAngle(new THREE.Vector3(0,0,1),this.lateralMov);
+        this.cameraGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.cameraOffsetAngle.x);
+        this.cameraGroup.rotateX(this.cameraOffsetAngle.y);
     }
 }
 class Track{
     constructor(){
-        let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
+        //let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
+        let arr = [new v3(-2000,0,-2000), new v3(2000,0,-2000), new v3(-2000,0,2000), new v3(2000,0,2000)];
         this.generateFromArray(arr);
         this.generateWallFromArray(arr);
         for(let i = 0; i < this.pos.length; i+=9){

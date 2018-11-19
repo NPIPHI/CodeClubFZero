@@ -23,11 +23,17 @@ class v2{// 2D vector. pertend that it is immutable
     scale(scaleFactor){
         return new v2(this.x*scaleFactor,this.y*scaleFactor);
     }
+    cross(vect){
+        return (this.x*vect.y-this.y*vect.x);
+    }
+    static fromAngle(theta){
+        return new v2(Math.cos(theta),Math.sin(theta));
+    }
     static sum(v1,v2){//sum of two vectors
-        return new v3(v1.x+v2.x,v1.y+v2.y);
+        return new v(v1.x+v2.x,v1.y+v2.y);
     }
     static dif(v1,v2){//v1 - v2
-        return new v3(v1.x-v2.x,v1.y-v2.y);
+        return new v(v1.x-v2.x,v1.y-v2.y);
     }
 }
 class v3{//3D vector. pertend that it is immutable
@@ -91,7 +97,7 @@ class v3{//3D vector. pertend that it is immutable
         return new v3(v1.x-v2.x,v1.y-v2.y,v1.z-v2.z);
     }
     static fromTHREEGeom(object3D){
-        return new v3(object3D.matrix.elements[12],object3D.matrix.elements[13],object3D.matrix.elements[14]);
+        return new v3(object3D.matrixWorld.elements[12],object3D.matrixWorld.elements[13],object3D.matrixWorld.elements[14]);
     }
     static mean(vects){
         let sum = new v3(0,0,0);
@@ -138,7 +144,7 @@ class Matrix3{// pertend it is immutable
                             axis.z*axis.x*(1-cos)-axis.y*sin, axis.x*axis.y*(1-cos)+axis.x*sin, cos+axis.z*axis.z*(1-cos)]);
     }
     static fromTHREEGeom(object3D){
-        return new Matrix3([object3D.matrix.elements[0],object3D.matrix.elements[1],object3D.matrix.elements[2],object3D.matrix.elements[4],object3D.matrix.elements[5],object3D.matrix.elements[6],object3D.matrix.elements[8],object3D.matrix.elements[9],object3D.matrix.elements[10]]);
+        return new Matrix3([object3D.matrixWorld.elements[0],object3D.matrixWorld.elements[1],object3D.matrixWorld.elements[2],object3D.matrixWorld.elements[4],object3D.matrixWorld.elements[5],object3D.matrixWorld.elements[6],object3D.matrixWorld.elements[8],object3D.matrixWorld.elements[9],object3D.matrixWorld.elements[10]]);
     }
     static MakeRotationMatrix( startV, endV ){  
         if(startV.equals(endV)){
@@ -359,7 +365,7 @@ class Polyhedron{
         });
         let polygons = [];
         sides.forEach(s => {
-            if(s[0].equals(s[1])||!vect.equals(vect)){
+            if(s[0].equals(s[1])||v3.sum(s[0],vect).equals(s[1])){
                 throw "bad Points"
             }
             polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
