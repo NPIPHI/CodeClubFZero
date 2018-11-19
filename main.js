@@ -32,12 +32,12 @@ function init(){
     document.body.appendChild( renderer.domElement );
     let light = new THREE.PointLight(0xffffff, 1, 100);
     {
-        let road = new THREE.TextureLoader().load("./road.png");
+        let road = new THREE.TextureLoader().load("./res/road.png");
         road.wrapS = THREE.RepeatWrapping;
         road.wrapT = THREE.RepeatWrapping;
         road.repeat.x = 10;
         road.repeat.y = 10;
-        let building = new THREE.TextureLoader().load("./building.png")
+        let building = new THREE.TextureLoader().load("./res/building.png")
         building.wrapS = THREE.RepeatWrapping;
         building.wrapT = THREE.RepeatWrapping;
         building.repeat.x = 5;
@@ -105,7 +105,7 @@ class Player{
         this.bodyGroup = new THREE.Group();
         this.animationGroup = new THREE.Group();
         this.cameraGroup = new THREE.Group();
-        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("test.png")}));
+        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("./res/test.png")}));
         this.cameraGroup.position.z = 10;
         this.cameraGroup.position.y = 5;
         this.positionGroup.add(this.rotationGroup);
@@ -225,7 +225,7 @@ class Player{
         let D2mov = this.mov.multiply(Matrix3.MakeRotationMatrix(p1.surfaceNormal,new v3(0,1,0)));
         D2mov = new v2(D2mov.x,D2mov.z);
         let groundRot = new v2(-Math.sin(this.groundRotation),-Math.cos(this.groundRotation));
-        this.lateralMov = (D2mov.cross(groundRot))/3;
+        this.lateralMov = Math.min((D2mov.cross(groundRot))/6,1);
         this.bodyGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.groundRotation);
         this.animationGroup.setRotationFromAxisAngle(new THREE.Vector3(0,0,1),this.lateralMov);
         this.cameraGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.cameraOffsetAngle.x);
@@ -234,8 +234,8 @@ class Player{
 }
 class Track{
     constructor(){
-        //let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
-        let arr = [new v3(-2000,0,-2000), new v3(2000,0,-2000), new v3(-2000,0,2000), new v3(2000,0,2000)];
+        let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
+        //let arr = [new v3(-2000,0,-2000), new v3(2000,0,-2000), new v3(-2000,0,2000), new v3(2000,0,2000)];
         this.generateFromArray(arr);
         this.generateWallFromArray(arr);
         for(let i = 0; i < this.pos.length; i+=9){
@@ -247,7 +247,7 @@ class Track{
         for(let i = 0; i < this.waLPos.length; i+=9){
             wall.push(Polygon.fromArray(this.waLPos.slice(i,i+9)));
         }
-        let fence = new THREE.TextureLoader().load("./fence.png");
+        let fence = new THREE.TextureLoader().load("./res/fence.png");
         this.mesh = new THREE.BufferGeometry();
         this.mesh.addAttribute('position', new THREE.BufferAttribute(new Float32Array(this.pos),3));
         this.mesh.addAttribute('uv', new THREE.BufferAttribute(new Float32Array(this.uvs),2));
@@ -424,15 +424,7 @@ class Track{
         return points;
     }
 }
-var trackPts = new Float32Array([-10,0,-10, -10,0,10, 10,0,10,
-                                 -10,0,-10, 10,0,10, 10,0,-10,
-                                 -15,5,-15, -15,5,15, 0,-10,0.,
-                                 -15,5,15, 15,5,15, 0,-10,0,
-                                 15,5,15, 15,5,-15, 0,-10,0,
-                                 15,5,-15, -15,5,-15, 0,-10,0,
-                                 15,5,-15, -15,15,-15,-15,5,-15,
-                                 15,15,-15,-15,15,-15, 15,5,-15,
-                                 -15,15,-15, 15,15,-15, 0,20,0]);
+
 var floor = [];
 var wall = [];
 var p1;
@@ -444,6 +436,6 @@ var camCont;
 var mouseLocked;
 var PI2 = Math.PI/2;
 var PI = Math.PI;
-var road = new THREE.TextureLoader().load("./road.png");
+var road = new THREE.TextureLoader().load("./res/road.png");
 var gamePad;
 init();
