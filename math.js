@@ -146,7 +146,7 @@ class Matrix3{// pertend it is immutable
     static fromTHREEGeom(object3D){
         return new Matrix3([object3D.matrixWorld.elements[0],object3D.matrixWorld.elements[1],object3D.matrixWorld.elements[2],object3D.matrixWorld.elements[4],object3D.matrixWorld.elements[5],object3D.matrixWorld.elements[6],object3D.matrixWorld.elements[8],object3D.matrixWorld.elements[9],object3D.matrixWorld.elements[10]]);
     }
-    static MakeRotationMatrix( startV, endV ){  
+    static makeRotationMatrix( startV, endV ){  
         if(startV.equals(endV)){
             return Matrix3.identity();
         }

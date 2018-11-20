@@ -4,6 +4,7 @@ window.onclick=function(){
     renderer.domElement.requestPointerLock()
     mouseLocked = true;
 };
+
 window.addEventListener("gamepadconnected", function(e) {
     if(e.gamepad.axes.length>=4){
         console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
@@ -12,17 +13,20 @@ window.addEventListener("gamepadconnected", function(e) {
         gamePad = e.gamepad;
     }
 });
+
 window.addEventListener("gamepaddisconnected", function(e) {
     console.log("Gamepad disconnected from index %d: %s",
     e.gamepad.index, e.gamepad.id);
     gamePad = undefined;
 });
+
 window.addEventListener('resize',()=>{
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     renderer.setSize( window.innerWidth, window.innerHeight );
 });
+
 function init(){
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 ); 
@@ -30,65 +34,48 @@ function init(){
     renderer.setClearColor( 0xADD8f6);
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement );
+    initLoad();  
+}
+
+function initLoad(){
     let light = new THREE.PointLight(0xffffff, 1, 100);
-    {
-        let road = new THREE.TextureLoader().load("./res/road.png");
-        road.wrapS = THREE.RepeatWrapping;
-        road.wrapT = THREE.RepeatWrapping;
-        road.repeat.x = 10;
-        road.repeat.y = 10;
-        let building = new THREE.TextureLoader().load("./res/building.png")
-        building.wrapS = THREE.RepeatWrapping;
-        building.wrapT = THREE.RepeatWrapping;
-        building.repeat.x = 5;
-        building.repeat.y = 50;
-        let box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
-        box.position.x=-150;
-        box.position.y=-200;
-        box.position.z=0;
-        scene.add(box);
-        box = new THREE.BoxGeometry(10000,1,10000);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x8f8f8f, map: road}));
-        box.position.y=-400;
-        scene.add(box);
-        box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
-        box.position.x=-50;
-        box.position.y=-200;
-        box.position.z=500;
-        scene.add(box);
-        box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
-        box.position.x=100;
-        box.position.y=-200;
-        box.position.z=450;
-        scene.add(box);
-        box = new THREE.BoxGeometry(50,500,50);
-        box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
-        box.position.x=200;
-        box.position.y=-200;
-        box.position.z=300;
-        scene.add(box);
-    }
     light.position.set(3,3,3);
     scene.add(light);
     light = new THREE.AmbientLight(0x3f3f3f, 1, 100);
     scene.add(light);
+    plazmaTexture = new THREE.TextureLoader().load("./res/plazma.png");
+    let road = new THREE.TextureLoader().load("./res/road.png");
+    road.wrapS = THREE.RepeatWrapping;
+    road.wrapT = THREE.RepeatWrapping;
+    road.repeat.x = 10;
+    road.repeat.y = 10;
+    loadFinish();
+}
+
+function loading(xhr){
+    console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+}
+
+function loadFinish(obj){
+    playerModel = new THREE.BoxGeometry(2,1,3);//obj.children[0].geometry;
+    console.log("starting");
     p1 = new Player();
-    new Track();    
+    new Track();  
     animate();
     gameLoop();
 }
+var loaded = false;
 function animate() {
     requestAnimationFrame( animate );
     renderer.render( scene, camera );
 }
+
 function gameLoop(){
     p1.update();
     kbrd.resetToggle();
     requestAnimationFrame( gameLoop );
 }
+
 class Player{
     constructor(){
         this.acceleration = 0.1;
@@ -105,7 +92,13 @@ class Player{
         this.bodyGroup = new THREE.Group();
         this.animationGroup = new THREE.Group();
         this.cameraGroup = new THREE.Group();
-        this.mesh = new THREE.Mesh(new THREE.BoxGeometry(2,1,3),new THREE.MeshLambertMaterial({color : 0xffffff, map: new THREE.TextureLoader().load("./res/test.png")}));
+        this.body = new THREE.Mesh(playerModel,new THREE.MeshLambertMaterial({color : 0xffffff}));
+        this.thruster1 = new thruster(plazmaTexture,12,1,0.3,0.05);
+        this.thruster1.position.set(-0.6,0,1.5);
+        this.thruster1.rotateX(Math.PI/2);
+        this.thruster2 = new thruster(plazmaTexture,12,1,0.3,0.05);
+        this.thruster2.position.set(0.6,0,1.5);
+        this.thruster2.rotateX(Math.PI/2);
         this.cameraGroup.position.z = 10;
         this.cameraGroup.position.y = 5;
         this.positionGroup.add(this.rotationGroup);
@@ -113,7 +106,9 @@ class Player{
         this.bodyGroup.add(this.cameraGroup);
         this.cameraGroup.add(camera);
         this.bodyGroup.add(this.animationGroup);
-        this.animationGroup.add(this.mesh);
+        this.animationGroup.add(this.body);
+        this.animationGroup.add(this.thruster1);
+        this.animationGroup.add(this.thruster2);
         scene.add(this.positionGroup);
         this.geom = Polyhedron.make2x3cube();
         this.rotation = Matrix3.identity();
@@ -128,7 +123,7 @@ class Player{
         let movV;
         if(gamePad){
             movV = new v2(0,((gamePad.buttons[6].pressed)?1:0)+((gamePad.buttons[7].pressed)?-1:0));
-            this.groundRotation += (Math.abs(gamePad.axes[0])>0.1)?gamePad.axes[0]:0;
+            this.groundRotation += (Math.abs(gamePad.axes[0])>0.1)?-gamePad.axes[0]/25:0;
         } else {
             movV = new v2(0,(kbrd.getKey(87)?-1:0)+(kbrd.getKey(83)?1:0));
             this.groundRotation += ((kbrd.getKey(65)?1:0)+(kbrd.getKey(68)?-1:0))/25;
@@ -187,11 +182,11 @@ class Player{
         }
         this.gravity = this.surfaceNormal.scale(-1);
         this.calculatePosition();
-        this.rotation = Matrix3.MakeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
+        this.rotation = Matrix3.makeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
-        this.geom.rotateAbsolute(Matrix3.fromTHREEGeom(this.mesh));
+        this.geom.rotateAbsolute(Matrix3.fromTHREEGeom(this.body));
         this.positionGroup.position.set(this.pos.x,this.pos.y,this.pos.z);
     }
     calculateAnimation(){  
@@ -222,16 +217,21 @@ class Player{
                                         this.rotationGroup.matrix.elements[12], this.rotationGroup.matrix.elements[13], this.rotationGroup.matrix.elements[14], this.rotationGroup.matrix.elements[15]];
         this.rotationGroup.matrixWorldNeedsUpdate = true;
         this.rotationGroup.matrixAutoUpdate = false;
-        let D2mov = this.mov.multiply(Matrix3.MakeRotationMatrix(p1.surfaceNormal,new v3(0,1,0)));
+
+        let D2mov = this.mov.multiply(Matrix3.makeRotationMatrix(p1.surfaceNormal,new v3(0,1,0)));
         D2mov = new v2(D2mov.x,D2mov.z);
         let groundRot = new v2(-Math.sin(this.groundRotation),-Math.cos(this.groundRotation));
         this.lateralMov = Math.min((D2mov.cross(groundRot))/6,1);
+
+        this.thruster1.setLength(D2mov.getMagnitude()/3+0.2);
+        this.thruster2.setLength(D2mov.getMagnitude()/3+0.2);
         this.bodyGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.groundRotation);
         this.animationGroup.setRotationFromAxisAngle(new THREE.Vector3(0,0,1),this.lateralMov);
         this.cameraGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.cameraOffsetAngle.x);
         this.cameraGroup.rotateX(this.cameraOffsetAngle.y);
     }
 }
+
 class Track{
     constructor(){
         let arr = Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1);
@@ -432,10 +432,50 @@ var camera;
 var cube;
 var renderer;
 var scene;
-var camCont;
 var mouseLocked;
 var PI2 = Math.PI/2;
 var PI = Math.PI;
 var road = new THREE.TextureLoader().load("./res/road.png");
 var gamePad;
+var loadProgress;
+var playerModel;
+var plazmaTexture;
 init();
+
+
+
+
+/*let building = new THREE.TextureLoader().load("./res/building.png")
+    building.wrapS = THREE.RepeatWrapping;
+    building.wrapT = THREE.RepeatWrapping;
+    building.repeat.x = 5;
+    building.repeat.y = 50;
+    let box = new THREE.BoxGeometry(50,500,50);
+    box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
+    box.position.x=-150;
+    box.position.y=-200;
+    box.position.z=0;
+    scene.add(box);
+    box = new THREE.BoxGeometry(10000,1,10000);
+    box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0x8f8f8f, map: road}));
+    box.position.y=-400;
+    scene.add(box);
+    box = new THREE.BoxGeometry(50,500,50);
+    box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
+    box.position.x=-50;
+    box.position.y=-200;
+    box.position.z=500;
+    scene.add(box);
+    box = new THREE.BoxGeometry(50,500,50);
+    box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
+    box.position.x=100;
+    box.position.y=-200;
+    box.position.z=450;
+    scene.add(box);
+    box = new THREE.BoxGeometry(50,500,50);
+    box = new THREE.Mesh(box, new THREE.MeshBasicMaterial({color: 0xffffff, map: building}));
+    box.position.x=200;
+    box.position.y=-200;
+    box.position.z=300;
+    scene.add(box);
+*/
