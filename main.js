@@ -78,6 +78,7 @@ function gameLoop(){
 
 class Player{
     constructor(){
+        this.cameraUnlocked = 0;
         this.acceleration = 0.1;
         this.gravity = new v3(0,-1,0)
         this.surfaceNormal = new v3(0,1,0);
@@ -193,12 +194,15 @@ class Player{
         if(mouseLocked){
             this.cameraOffsetAngle.x-=kbrd.mouseMov[0]/400;
             this.cameraOffsetAngle.y-=kbrd.mouseMov[1]/400;
-            this.cameraOffsetAngle.y = Math.min(Math.max(this.cameraOffsetAngle.y,-Math.PI/2),Math.PI/2)
-            while(this.cameraOffsetAngle.x>Math.PI*2){
-                this.cameraOffsetAngle.x-=Math.PI*2;
-            }
-            while(this.cameraOffsetAngle.x<0){
-                this.cameraOffsetAngle.x+=Math.PI*2;
+            this.cameraOffsetAngle.y = Math.min(Math.max(this.cameraOffsetAngle.y,-Math.PI/2),Math.PI/2);
+            if(kbrd.mouseMov[0]*kbrd.mouseMov[0]>0.1||kbrd.mouseMov[1]*kbrd.mouseMov[1]>0.1) this.cameraUnlocked = 30;
+            else {
+                this.cameraUnlocked--;
+                if(this.cameraUnlocked<0) {
+                    if(this.cameraUnlocked>-30){
+                        this.cameraOffsetAngle = this.cameraOffsetAngle.scale(0.8);
+                    } else this.cameraOffsetAngle = new v2(0,0);
+                }
             }
         }
         if(gamePad){
