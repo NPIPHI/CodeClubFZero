@@ -324,10 +324,11 @@ class Polyhedron{
         }
     }
     generateMovmentPoly(vect){//vect is added to the poly., so a cube at 0,0,0 with the vect = 1,0,0 would be the stretched poly between 0,0,0, and 1,0,0,
+        if(vect.equals(new v3(0,0,0))) return this.clone();
         let foerward = [];
         let backward = [];
         this.faces.forEach(f => {
-            if(f.normal.dot(vect)>0){
+            if(f.normal.dot(vect)>=-0.01){//-0.01 in order to avoid floating point innacuracy with close to vector allinged polygons
                 foerward.push(f.clone());
             } else {
                 backward.push(f.clone());
@@ -365,10 +366,14 @@ class Polyhedron{
         });
         let polygons = [];
         sides.forEach(s => {
-            if(s[0].equals(s[1])||v3.sum(s[0],vect).equals(s[1])){
-                throw "bad Points"
+            try{
+                if(s[0].equals(s[1])||v3.sum(s[0],vect).equals(s[1])){
+                    throw "bad Points"
+                }
+                polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
+            } catch(e){
+                throw "errrrrror"
             }
-            polygons.push(new Polygon(s[1],s[0],v3.sum(s[0],vect)));
         });
         foerward.forEach(f => {
             polygons.push(f);
@@ -421,5 +426,12 @@ class Polyhedron{
     }
     intersectsBoundingBox(poly){
         return this.boundingBox[0]<=poly.boundingBox[3]&&poly.boundingBox[0]<=this.boundingBox[3]&&this.boundingBox[1]<=poly.boundingBox[4]&&poly.boundingBox[1]<=this.boundingBox[4]&&this.boundingBox[2]<=poly.boundingBox[5]&&poly.boundingBox[2]<=this.boundingBox[5];
+    }
+    clone(){
+        let polys = [];
+        this.faces.forEach(element => {
+            polys.push(element.clone());
+        });
+        return new Polyhedron(polys);
     }
 }

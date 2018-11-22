@@ -801,42 +801,42 @@ function makeCylinder(sides, height, bottomDiameter, topDiameter){
         pos.push(sin1*bottomDiameter);
 
         uvs.push(0);
-        uvs.push(1);
+        uvs.push((i+1)/sides);
 
         pos.push(cos1*topDiameter);
         pos.push(height);
         pos.push(sin1*topDiameter);
 
         uvs.push(1);
-        uvs.push(1);
+        uvs.push((i+1)/sides);
 
         pos.push(cos2*bottomDiameter);
         pos.push(0);
         pos.push(sin2*bottomDiameter);
 
         uvs.push(0);
-        uvs.push(0);
+        uvs.push(i/sides);
 
         pos.push(cos1*topDiameter);
         pos.push(height);
         pos.push(sin1*topDiameter);
 
         uvs.push(1);
-        uvs.push(1);
+        uvs.push((i+1)/sides);
 
         pos.push(cos2*topDiameter);
         pos.push(height);
         pos.push(sin2*topDiameter);
 
         uvs.push(1);
-        uvs.push(0);
+        uvs.push(i/sides);
 
         pos.push(cos2*bottomDiameter);
         pos.push(0);
         pos.push(sin2*bottomDiameter);
 
         uvs.push(0);
-        uvs.push(0);
+        uvs.push(i/sides);
     }
     let geom = new THREE.BufferGeometry();
     geom.addAttribute('position', new THREE.BufferAttribute(new Float32Array(pos),3));
