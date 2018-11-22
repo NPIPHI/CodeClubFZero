@@ -68,6 +68,9 @@ class Player{
         this.calculateMovment();
         this.calculateCollision();
         this.calculateAnimation();
+        if(isDebug){
+            this.debugUpdate();
+        }
     }
     calculateMovment(){
         this.mov = this.mov.scale(0.9);
@@ -195,5 +198,34 @@ class Player{
         this.animationGroup.setRotationFromAxisAngle(new THREE.Vector3(0,0,1),this.lateralMov);
         this.cameraGroup.setRotationFromAxisAngle(new THREE.Vector3(0,1,0),this.cameraOffsetAngle.x);
         this.cameraGroup.rotateX(this.cameraOffsetAngle.y);
+    }
+    debugUpdate(){
+        debugElements[0].value = Math.round(this.pos.x*10)/10;
+        debugElements[1].value = Math.round(this.pos.y*10)/10;
+        debugElements[2].value = Math.round(this.pos.z*10)/10;
+        debugElements[3].value = Math.round(this.mov.x*10)/10;
+        debugElements[4].value = Math.round(this.mov.y*10)/10;
+        debugElements[5].value = Math.round(this.mov.z*10)/10;
+        debugElements[6].value = Math.round(this.groundRotation*10)/10;
+    }
+    setAttribute(attributeName, value){
+        switch(attributeName){
+            case "x": this.pos.x = value;
+                break;
+            case "y": this.pos.y = value;
+                break;
+            case "z": this.pos.z = value;
+                break;
+            case "mov.x": this.mov.x = value;
+                break;
+            case "mov.y": this.mov.y = value;
+                break;
+            case "mov.z": this.mov.z = value;
+                break;
+            case "dir.x": this.dir.x = value;
+                break;
+            case "dir.y": this.dir.y = value;
+                break;
+        }
     }
 }
