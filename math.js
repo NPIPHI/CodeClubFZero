@@ -15,7 +15,7 @@ class v2{// 2D vector. pertend that it is immutable
         return this.x*this.x+this.y*this.y;
     }
     getAngle(){
-        return Math.atan2(this.y,this.x);
+        return -Math.atan2(this.y,this.x)+Math.PI*2;
     }
     multiply(m2){
         return new v2(this.x*m2.m[0]+this.y*m2.m[2],this.x*m2.m[1]+this.y*m2.m[3]);
@@ -80,6 +80,9 @@ class v3{//3D vector. pertend that it is immutable
     }
     scaleByAxis(xscale,yscale,zscale){
         return new v3(this.x*xscale,this.y*yscale, this.z*zscale);
+    }
+    get2D(){
+        return new v2(this.x,this.z);
     }
     static dot(v1,v2){
         return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;

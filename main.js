@@ -9,6 +9,23 @@ NodeList.prototype.remove = HTMLCollection.prototype.remove = function() { // en
     }
 }
 
+if ("onpointerlockchange" in document) {
+    document.addEventListener('pointerlockchange', lockChangeAlert, false);
+  } else if ("onmozpointerlockchange" in document) {
+    document.addEventListener('mozpointerlockchange', lockChangeAlert, false);
+  }
+  
+  function lockChangeAlert() {
+    if(document.pointerLockElement === renderElement ||
+        document.mozPointerLockElement === renderElement) {
+        mouseLocked = true;
+        // Do something useful in response
+    } else {
+        mouseLocked = false;    
+      // Do something useful in response
+    }
+}
+
 window.onclick=function(){ // locks pointer
     if(mouseOverRenderer){
         renderer.domElement.requestPointerLock = renderer.domElement.requestPointerLock ||
@@ -75,7 +92,8 @@ function loadFinish(obj){
     playerModel = new THREE.BoxGeometry(2,1,3);//obj.children[0].geometry;
     console.log("starting");
     p1 = new Player();
-    new Track();  
+    track = new Track();  
+    track.generateMap([[new v3(0,0,0), new v3(50,0,0), new v3(0,0,50), new v3(50,0,50)]]);//[Track.makeSpiral(200, 100, 50, 3, 100), Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1)]);
     animate();
     gameLoop();
 }
@@ -90,10 +108,17 @@ function gameLoop(){
     effectList.forEach(e=>{e.update()});
     kbrd.resetToggle();
     requestAnimationFrame( gameLoop );
+    if(mode == "start"){
+        mode = "play";
+    }
 }
 
 function debug(){
-    if(!isDebug){
+    if(mode == "map"){
+        removeTrackConsole();
+    }
+    if(!(mode=="debug")){
+        renderElementDimensions = [0,0,0.8,1];
         debugConsole = document.createElement("debugConsole");
         debugConsole.style.position = "absolute";
         debugConsole.style.left = window.innerWidth*renderElementDimensions[2]+1+"px";
@@ -103,21 +128,27 @@ function debug(){
         debugConsole.appendChild(text);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[0].setAttribute("type","text");
+        debugElements[0].setAttribute("type","number");
         debugElements[0].setAttribute("value",0);
         debugElements[0].style.width = "50px";
+        debugElements[0].onmouseover = ()=>p1.disableUpdate(0);
+        debugElements[0].onmouseout = ()=>p1.enableUpdate(0);
         debugConsole.appendChild(debugElements[0]);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[1].setAttribute("type","text");
+        debugElements[1].setAttribute("type","number");
         debugElements[1].setAttribute("value",0);
         debugElements[1].style.width = "50px";
+        debugElements[1].onmouseover = ()=>p1.disableUpdate(1);
+        debugElements[1].onmouseout = ()=>p1.enableUpdate(1);
         debugConsole.appendChild(debugElements[1]);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[2].setAttribute("type","text");
+        debugElements[2].setAttribute("type","number");
         debugElements[2].setAttribute("value",0);
         debugElements[2].style.width = "50px";
+        debugElements[2].onmouseover = ()=>p1.disableUpdate(2);
+        debugElements[2].onmouseout = ()=>p1.enableUpdate(2);
         debugConsole.appendChild(debugElements[2]);
         
         text = document.createElement("div");
@@ -125,21 +156,27 @@ function debug(){
         debugConsole.appendChild(text);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[3].setAttribute("type","text");
+        debugElements[3].setAttribute("type","number");
         debugElements[3].setAttribute("value",0);
         debugElements[3].style.width = "50px";
+        debugElements[3].onmouseover = ()=>p1.disableUpdate(3);
+        debugElements[3].onmouseout = ()=>p1.enableUpdate(3);
         debugConsole.appendChild(debugElements[3]);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[4].setAttribute("type","text");
+        debugElements[4].setAttribute("type","number");
         debugElements[4].setAttribute("value",0);
         debugElements[4].style.width = "50px";
+        debugElements[4].onmouseover = ()=>p1.disableUpdate(4);
+        debugElements[4].onmouseout = ()=>p1.enableUpdate(4);
         debugConsole.appendChild(debugElements[4]);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[5].setAttribute("type","text");
+        debugElements[5].setAttribute("type","number");
         debugElements[5].setAttribute("value",0);
         debugElements[5].style.width = "50px";
+        debugElements[5].onmouseover = ()=>p1.disableUpdate(5);
+        debugElements[5].onmouseout = ()=>p1.enableUpdate(5);
         debugConsole.appendChild(debugElements[5]);
 
         text = document.createElement("div");
@@ -147,28 +184,105 @@ function debug(){
         debugConsole.appendChild(text);
 
         debugElements.push(document.createElement("INPUT"));
-        debugElements[6].setAttribute("type","text");
+        debugElements[6].setAttribute("type","number");
         debugElements[6].setAttribute("value",0);
         debugElements[6].style.width = "50px";
+        debugElements[6].onmouseover = ()=>p1.disableUpdate(6);
+        debugElements[6].onmouseout = ()=>p1.enableUpdate(6);
         debugConsole.appendChild(debugElements[6]);
 
+        text = document.createElement("div");
+        text.innerText = "pause "
+        debugConsole.appendChild(text);
+
+        debugElements.push(document.createElement("INPUT"));
+        debugElements[7].setAttribute("type","checkbox");
+        debugElements[7].setAttribute("value","pause");
+        debugConsole.appendChild(debugElements[7]);
+
+        debugElements.push(document.createElement("INPUT"));
+        debugElements[8].setAttribute("type", "button");
+        debugElements[8].setAttribute("value", "makeMap");
+        debugElements[8].onclick = makeTrackConsole;
+        debugConsole.appendChild(debugElements[8]);
+
+        debugElements.push(document.createElement("INPUT"));
+        debugElements[9].setAttribute("type", "button");
+        debugElements[9].setAttribute("value", "play");
+        debugElements[9].onclick = rebug;
+        debugConsole.appendChild(debugElements[9]);
+
         document.body.appendChild(debugConsole);
-        renderElementDimensions = [0,0,0.8,1];
         renderer.setRenderElement();
-        isDebug = true;
+        mode = "debug";
     }
 }
 
 function rebug(){
-    if(isDebug){
+    if(mode == "debug"){
         debugConsole.remove();
         debugConsole = undefined;
+        debugElements = [];
         renderElementDimensions = [0,0,1,1];
         renderer.setRenderElement();
-        isDebug = false;
+        mode = "start";
     }
 }
 
+function makeTrackConsole(){
+    if(mode == "debug"){
+        rebug();
+    }
+    if(!trackConsole){
+        renderElementDimensions = [0,0,0.8,1];
+        trackConsole = document.createElement("trackConsole");
+        trackConsole.style.position = "absolute";
+        trackConsole.style.left = window.innerWidth*renderElementDimensions[2]+1+"px";
+
+        trackConsoleElements.push(document.createElement("INPUT"));
+        trackConsoleElements[0].setAttribute("type", "button");
+        trackConsoleElements[0].setAttribute("value", "reset");
+        trackConsoleElements[0].onclick = () => track.reset();
+        trackConsole.appendChild(trackConsoleElements[0]);
+
+        trackConsoleElements.push(document.createElement("INPUT"));
+        trackConsoleElements[1].setAttribute("type", "button");
+        trackConsoleElements[1].setAttribute("value", "remove layer");
+        trackConsoleElements[1].onclick = ()=>track.remove(1);
+        trackConsole.appendChild(trackConsoleElements[1]);
+
+        trackConsoleElements.push(document.createElement("INPUT"));
+        trackConsoleElements[2].setAttribute("type", "button");
+        trackConsoleElements[2].setAttribute("value", "create cut");
+        trackConsoleElements[2].onclick = ()=>track.cut();
+        trackConsole.appendChild(trackConsoleElements[2]);
+        
+        trackConsoleElements.push(document.createElement("INPUT"));
+        trackConsoleElements[3].setAttribute("type", "button");
+        trackConsoleElements[3].setAttribute("value", "debug");
+        trackConsoleElements[3].onclick = ()=>debug();
+        trackConsole.appendChild(trackConsoleElements[3]);
+
+        document.body.appendChild(trackConsole);
+        renderer.setRenderElement();
+        track.previewMesh.visible = true;
+        track.previewMesh.frustumCulled = false;
+        mode = "map";
+    }
+}
+
+function removeTrackConsole(){
+    if(trackConsole){
+        trackConsole.remove();
+        trackConsole = undefined;
+        trackConsoleElements = [];
+        renderElementDimensions = [0,0,1,1];
+        renderer.setRenderElement();
+        track.previewMesh.visible = false;
+        track.previewMesh.frustumCulled = true;
+        mode = "start";
+    }
+}
 THREE.WebGLRenderer.prototype.setRenderElement = function(){
     if(debugConsole){
         debugConsole.style.left = window.innerWidth*renderElementDimensions[2]+1+"px";
@@ -187,20 +301,22 @@ var camera;
 var renderer;
 var scene;
 var mouseLocked;
-var road = new THREE.TextureLoader().load("./res/road.png");
 var gamePad;
 var loadProgress;
 var playerModel;
 var plazmaTexture;
 var effectList = []; //list of all animations that are time dependent
-var isDebug = false;
 var renderElement;
 var debugConsole;
 var renderElementDimensions = [0,0,1,1]; //x1,y1,x2,y2 portion of window
 var debugElements = [];
+var trackConsole;
+var trackConsoleElements = [];
 var mouseOverRenderer = false; //which element the mouse pointer is over
+var paused = false;
+var mode = "start";
+var track;
 init();
-
 
 
 

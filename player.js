@@ -1,5 +1,6 @@
 class Player{
     constructor(){
+        this.debugLocked = [false,false,false,false,false,false];
         this.cameraUnlocked = 0;
         this.acceleration = 0.1;
         this.gravity = new v3(0,-1,0)
@@ -12,6 +13,7 @@ class Player{
         this.lateralMov = 0;
         this.exhaustTexture = new THREE.TextureLoader().load("./res/exhaust.png");
         this.positionGroup = new THREE.Group();
+        this.positionGroup.name = "player";
         this.rotationGroup = new THREE.Group();
         this.bodyGroup = new THREE.Group();
         this.animationGroup = new THREE.Group();
@@ -65,11 +67,27 @@ class Player{
         this.rotation = Matrix3.identity();
     }
     update(){
-        this.calculateMovment();
-        this.calculateCollision();
-        this.calculateAnimation();
-        if(isDebug){
+        if(mode == "play"){
+            if(!paused){
+                this.calculateMovment();
+                this.calculateCollision();
+                this.calculateAnimation();
+            } else {
+                this.calculateAnimation();
+            }
+        } else if(mode == "debug"){
             this.debugUpdate();
+            if(!paused){
+                this.calculateMovment();
+                this.calculateCollision();
+                this.calculateAnimation();
+            } else {
+                this.calculateAnimation();
+            }
+        } else if(mode == "map"){
+            track.mapEdit();
+            this.calculatePosition();
+            this.calculateAnimation();
         }
     }
     calculateMovment(){
@@ -136,19 +154,19 @@ class Player{
         }
         this.gravity = this.surfaceNormal.scale(-1);
         this.calculatePosition();
-        this.rotation = Matrix3.makeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
         this.geom.rotateAbsolute(Matrix3.fromTHREEGeom(this.body));
         this.positionGroup.position.set(this.pos.x,this.pos.y,this.pos.z);
+        this.rotation = Matrix3.makeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
     }
     calculateAnimation(){  
         if(mouseLocked){
             this.cameraOffsetAngle.x-=kbrd.mouseMov[0]/400;
             this.cameraOffsetAngle.y-=kbrd.mouseMov[1]/400;
             this.cameraOffsetAngle.y = Math.min(Math.max(this.cameraOffsetAngle.y,-Math.PI/2),Math.PI/2);
-            if(!isDebug){
+            if(mode == "play"){
                 if(kbrd.mouseMov[0]*kbrd.mouseMov[0]>0.1||kbrd.mouseMov[1]*kbrd.mouseMov[1]>0.1) this.cameraUnlocked = 30;
                 else {
                     this.cameraUnlocked--;
@@ -200,13 +218,49 @@ class Player{
         this.cameraGroup.rotateX(this.cameraOffsetAngle.y);
     }
     debugUpdate(){
-        debugElements[0].value = Math.round(this.pos.x*10)/10;
+        if(this.debugLocked[0]){
+            if(kbrd.getKey(13)) this.pos.x =parseFloat(debugElements[0].value);
+        } else {
+            debugElements[0].value = Math.round(this.pos.x*10)/10;
+        }
+        if(this.debugLocked[1]){
+            if(kbrd.getKey(13)) this.pos.y =parseFloat(debugElements[1].value);
+        } else {
         debugElements[1].value = Math.round(this.pos.y*10)/10;
+        }
+        if(this.debugLocked[2]){
+            if(kbrd.getKey(13)) this.pos.z =parseFloat(debugElements[2].value);
+        } else {
         debugElements[2].value = Math.round(this.pos.z*10)/10;
+        }
+        if(this.debugLocked[3]){
+            if(kbrd.getKey(13)) this.mov.x =parseFloat(debugElements[3].value);
+        } else {
         debugElements[3].value = Math.round(this.mov.x*10)/10;
+        }
+        if(this.debugLocked[4]){
+            if(kbrd.getKey(13)) this.mov.y =parseFloat(debugElements[4].value);
+        } else {
         debugElements[4].value = Math.round(this.mov.y*10)/10;
+        }
+        if(this.debugLocked[5]){
+            if(kbrd.getKey(13)) this.mov.z =parseFloat(debugElements[5].value);
+        } else {
         debugElements[5].value = Math.round(this.mov.z*10)/10;
+        }
+        if(this.debugLocked[6]){
+            if(kbrd.getKey(13)) this.groundRotation =parseFloat(debugElements[6].value);
+        } else {
         debugElements[6].value = Math.round(this.groundRotation*10)/10;
+        }
+        paused = debugElements[7].checked;
+    }
+    disableUpdate(attributeNumber){
+        this.debugLocked[attributeNumber]=true;
+    }
+    enableUpdate(attributeNumber){
+        this.debugLocked[attributeNumber]=false;
+
     }
     setAttribute(attributeName, value){
         switch(attributeName){
