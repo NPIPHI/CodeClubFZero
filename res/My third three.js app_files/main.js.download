@@ -93,7 +93,7 @@ function loadFinish(obj){
     console.log("starting");
     p1 = new Player();
     track = new Track();  
-    track.generateMap([[new v3(0,0,0),new v3(50,0,0),new v3(0,0,50),new v3(50,0,50),new v3(71,0,100),new v3(121,0,100),new v3(186,0,150),new v3(236,0,150),new v3(322,0,200),new v3(372,0,200),new v3(477,0,250),new v3(527,0,250),new v3(649,0,300),new v3(699,0,300),new v3(836,0,350),new v3(886,0,350),new v3(1037,0,400),new v3(1087,0,400),new v3(1248,0,450),new v3(1298,0,450),new v3(1469,0,500),new v3(1519,0,500),new v3(1699,0,550),new v3(1749,0,550),new v3(1938,0,600),new v3(1988,0,600),new v3(2184,0,650),new v3(2234,0,650),new v3(2437,0,700),new v3(2487,0,700),new v3(2696,0,750),new v3(2746,0,750),new v3(2960,0,800),new v3(3010,0,800),new v3(3211,0,850),new v3(3261,0,850),new v3(3417,0,900),new v3(3467,0,900),new v3(3577,0,950),new v3(3627,0,950),new v3(3684,0,1000),new v3(3734,0,1000),new v3(3740,0,1050),new v3(3790,0,1050),new v3(3753,0,1100),new v3(3803,0,1100),new v3(3765,0,1150),new v3(3815,0,1150),new v3(3772,0,1200),new v3(3822,0,1200)]]);//[Track.makeSpiral(200, 100, 50, 3, 100), Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1)]);
+    track.generateMap([[new v3(0,0,0), new v3(50,0,0), new v3(0,0,50), new v3(50,0,50)]]);//[Track.makeSpiral(200, 100, 50, 3, 100), Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1)]);
     animate();
     gameLoop();
 }
