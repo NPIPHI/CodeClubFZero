@@ -70,18 +70,24 @@ class Player{
         if(mode == "play"){
             if(!paused){
                 this.calculateMovment();
+                this.calculatePosition();
                 this.calculateCollision();
+                this.calculatePosition();
                 this.calculateAnimation();
             } else {
+                this.calculatePosition();
                 this.calculateAnimation();
             }
         } else if(mode == "debug"){
             this.debugUpdate();
             if(!paused){
                 this.calculateMovment();
+                this.calculatePosition();
                 this.calculateCollision();
+                this.calculatePosition();
                 this.calculateAnimation();
             } else {
+                this.calculatePosition();
                 this.calculateAnimation();
             }
         } else if(mode == "map"){
@@ -114,7 +120,6 @@ class Player{
         this.mov = v3.sum(this.mov,movV);
         this.prevpos = this.pos;
         this.pos = v3.sum(this.mov,this.pos);
-        this.calculatePosition();
     }
     calculateCollision(){
         let collisionAxes = [];
@@ -148,18 +153,24 @@ class Player{
             } catch(e){
                 collisionAxes = new v3(0,1,0);
             }
-            this.surfaceNormal = v3.mean([collisionAxes, this.surfaceNormal, this.surfaceNormal, this.surfaceNormal]);
+            this.setSurfaceNormal(v3.mean([collisionAxes, this.surfaceNormal, this.surfaceNormal, this.surfaceNormal]).normalise());
         } else {
-            this.surfaceNormal = this.surfaceNormal.scaleByAxis(0.95,1.1,0.95).normalise();
+            //this.setSurfaceNormal(collisionAxes);
         }
         this.gravity = this.surfaceNormal.scale(-1);
-        this.calculatePosition();
+    }
+    setSurfaceNormal(normal){
+        try{
+        this.rotation = this.rotation.multiply(Matrix3.makeRotationMatrix(this.surfaceNormal, normal));
+        this.surfaceNormal = normal;
+        } catch(e){
+            throw "asdf";
+        }
     }
     calculatePosition(){
         this.geom.translateAbsolute(this.pos);
         this.geom.rotateAbsolute(Matrix3.fromTHREEGeom(this.body));
         this.positionGroup.position.set(this.pos.x,this.pos.y,this.pos.z);
-        this.rotation = Matrix3.makeRotationMatrix(new v3(0,1,0), this.surfaceNormal);
     }
     calculateAnimation(){  
         if(mouseLocked){

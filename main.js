@@ -35,7 +35,7 @@ window.onclick=function(){ // locks pointer
     }
 };
 
-window.addEventListener("gamepadconnected", function(e) { // handels gamepad connection
+/*window.addEventListener("gamepadconnected", function(e) { // handels gamepad connection
     if(e.gamepad.axes.length>=4){
         console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
         e.gamepad.index, e.gamepad.id,
@@ -48,7 +48,7 @@ window.addEventListener("gamepaddisconnected", function(e) { // handels gamepad 
     console.log("Gamepad disconnected from index %d: %s",
     e.gamepad.index, e.gamepad.id);
     gamePad = undefined;
-});
+});*/
 
 window.addEventListener('resize',()=>{ // resizes screen to fit screen
     renderer.setRenderElement();
@@ -93,7 +93,7 @@ function loadFinish(obj){
     console.log("starting");
     p1 = new Player();
     track = new Track();  
-    track.generateMap([[new v3(0,0,0),new v3(50,0,0),new v3(0,0,50),new v3(50,0,50),new v3(71,0,100),new v3(121,0,100),new v3(186,0,150),new v3(236,0,150),new v3(322,0,200),new v3(372,0,200),new v3(477,0,250),new v3(527,0,250),new v3(649,0,300),new v3(699,0,300),new v3(836,0,350),new v3(886,0,350),new v3(1037,0,400),new v3(1087,0,400),new v3(1248,0,450),new v3(1298,0,450),new v3(1469,0,500),new v3(1519,0,500),new v3(1699,0,550),new v3(1749,0,550),new v3(1938,0,600),new v3(1988,0,600),new v3(2184,0,650),new v3(2234,0,650),new v3(2437,0,700),new v3(2487,0,700),new v3(2696,0,750),new v3(2746,0,750),new v3(2960,0,800),new v3(3010,0,800),new v3(3211,0,850),new v3(3261,0,850),new v3(3417,0,900),new v3(3467,0,900),new v3(3577,0,950),new v3(3627,0,950),new v3(3684,0,1000),new v3(3734,0,1000),new v3(3740,0,1050),new v3(3790,0,1050),new v3(3753,0,1100),new v3(3803,0,1100),new v3(3765,0,1150),new v3(3815,0,1150),new v3(3772,0,1200),new v3(3822,0,1200)]]);//[Track.makeSpiral(200, 100, 50, 3, 100), Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1)]);
+    track.generateMap([[new v3(0, 0, 0),new v3(50, 0, 0),new v3(0, 0, 50),new v3(50, 0, 50),new v3(0, 23, 100),new v3(50, 23, 100),new v3(0, 64.79056096076965, 135.81269517540932),new v3(50, 64.79056096076965, 135.81269517540932),new v3(0, 117.7232124209404, 150.88367566466331),new v3(50, 117.7232124209404, 150.88367566466331),new v3(0, 172.11026686429977, 142.4546670615673),new v3(50, 172.11026686429977, 142.4546670615673),new v3(0, 217.99785786867142, 112.06834104657173),new v3(50, 217.99785786867142, 112.06834104657173),new v3(0, 248.61043292284012, 78.60387846827507),new v3(50, 248.61043292284012, 78.60387846827507),new v3(0, 271.66836446523666, 40.06387469172478),new v3(50, 271.66836446523666, 40.06387469172478),new v3(-7.859895984403977, 294.28954828222595, 8.577081568560494),new v3(41.240315278298965, 299.1376846625408, 0.47370121630181217),new v3(-18.128310797605316, 311.56349309860957, -30.38627496006393),new v3(30.451790140330466, 317.8294124085033, -40.43429866657618),new v3(-25.286989994241416, 334.55821926635514, -70.3787630615771),new v3(24.118086305297986, 338.97652937566903, -76.5767157269071),new v3(-42.05315911588133, 350.3559556654525, -100.3359254969046),new v3(3.0638406916801824, 361.55892648751126, -118.65507974142122),new v3(-65.39814706977671, 367.03023513855527, -130.02024658743414),new v3(-24.823791930809815, 381.31100519602234, -155.20938794784388),new v3(-92.77868229747543, 378.32195953529157, -162.32681609696334),new v3(-54.950959096907845, 394.3959511301437, -190.77764615936326)]]);//[Track.makeSpiral(200, 100, 50, 3, 100), Track.makeOval(new v3(320,-15,0), 400,300,Math.PI/4,100,1)]);
     animate();
     gameLoop();
 }
@@ -101,7 +101,6 @@ function loadFinish(obj){
 function animate() {
     requestAnimationFrame( animate );
     renderer.render( scene, camera );
-    if(renderStats) renderStats.update(renderer);
 }
 
 function gameLoop(){
@@ -212,9 +211,6 @@ function debug(){
         debugElements[9].setAttribute("value", "play");
         debugElements[9].onclick = rebug;
         debugConsole.appendChild(debugElements[9]);
-
-        renderStats = new THREEx.RendererStats();
-        debugConsole.appendChild(renderStats.domElement);
 
         document.body.appendChild(debugConsole);
         renderer.setRenderElement();

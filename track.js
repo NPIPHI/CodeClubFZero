@@ -8,6 +8,8 @@ class Track{
         this.previewMesh = new THREE.Mesh(this.previewGeometry, new THREE.MeshBasicMaterial({color: 0x00ff00}));
         this.previewMesh.name = "preview mesh";
         this.previewMesh.dynamic = true;
+        this.trackBuildWidth = 50;
+        this.buildRotation =0;
         scene.add(this.previewMesh);
         this.previewMesh.visible = false;
     }
@@ -232,17 +234,30 @@ class Track{
     }
     mapEdit(){
         let activeSection = this.trackPoints[this.trackPoints.length-1];
-        let point0 = activeSection[activeSection.length-2];
-        let point1 = activeSection[activeSection.length-1];
-        this.deltaVect = v3.sum(this.deltaVect, new v3(((kbrd.getKey(65))?1:0)+((kbrd.getKey(68))?-1:0),((kbrd.getKey(16))?1:0)+((kbrd.getKey(17))?-1:0),((kbrd.getKey(87))?1:0)+((kbrd.getKey(83))?-1:0)));
-        p1.pos = v3.sum(v3.sum(point0,point1),v3.sum(activeSection[activeSection.length-3],activeSection[activeSection.length-4])).scale(0.25);
-        p1.surfaceNormal = v3.cross(v3.dif(point0,point1),v3.dif(point1,activeSection[activeSection.length-4])).normalise();
-        this.rotation = p1.rotation;
-        p1.groundRotation = v3.dif(v3.sum(point0,point1),v3.sum(activeSection[activeSection.length-3],activeSection[activeSection.length-4])).multiply(Matrix3.makeRotationMatrix(p1.surfaceNormal, new v3(0,1,0))).get2D().getAngle()-Math.PI/2;
-        let vect0 = point0;
-        let vect1 = point1;
-        let vect2 = v3.sum(this.deltaVect.multiply(this.rotation), point0);
-        let vect3 = v3.sum(this.deltaVect.multiply(this.rotation), point1);
+        this.deltaVect = v3.sum(this.deltaVect, new v3(0,((kbrd.getKey(16))?1:0)+((kbrd.getKey(17))?-1:0),((kbrd.getKey(87))?1:0)+((kbrd.getKey(83))?-1:0)));
+        this.buildRotation+=(((kbrd.getKey(65))?-0.01:0)+((kbrd.getKey(68))?0.01:0));
+        let point0 = activeSection[activeSection.length-4];
+        let point1 = activeSection[activeSection.length-3];
+        let point2 = activeSection[activeSection.length-2];
+        let point3 = activeSection[activeSection.length-1];
+        let normal = v3.cross(v3.dif(point0,point2),v3.dif(point2,point3)).normalise();
+        this.rotation = Matrix3.makeRotationMatrix(new v3(0,1,0),normal);
+        let inverseRotation = Matrix3.makeRotationMatrix(normal, new v3(0,1,0));
+        this.planeRotation = Matrix3.fromAxisAngle(normal,this.buildRotation);
+        p1.surfaceNormal = normal;
+        p1.groundRotation = v3.dif(v3.sum(point2,point3),v3.sum(point0,point1)).multiply(Matrix3.makeRotationMatrix(p1.surfaceNormal, new v3(0,1,0))).get2D().getAngle()-Math.PI/2;        
+        p1.pos = v3.sum(v3.sum(point0, point1),v3.sum(point2, point3).scale(4)).scale(0.1);
+        let offset = new v3(this.deltaVect.z, 0, 0).normalise().scale(this.trackBuildWidth/2);
+        let vect0 = point2;
+        let vect1 = point3;
+        let vect3 = v3.sum(v3.sum(point2,point3).scale(0.5), v3.sum(this.deltaVect,offset).multiply(this.rotation).multiply(this.planeRotation));
+        let vect2 = v3.sum(v3.sum(point2,point3).scale(0.5), v3.sum(this.deltaVect,offset.scale(-1)).multiply(this.rotation).multiply(this.planeRotation));
+        if(v3.sum(this.deltaVect,offset).multiply(this.planeRotation).z<0){
+            console.log("R");
+        }
+        if(v3.sum(this.deltaVect,offset.scale(-1)).multiply(this.planeRotation).z<0){
+            console.log("L");
+        }
 
         if(kbrd.getToggle(13)){
             this.trackPoints[this.trackPoints.length-1].push(vect2,vect3);
@@ -286,6 +301,9 @@ class Track{
     refresh(){
         this.clear();
         this.generateMap(this.trackPoints);
+    }
+    finish(){
+        this.trackPoints
     }
     clear(){
         scene.remove(this.trackMesh);
